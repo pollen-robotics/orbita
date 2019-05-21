@@ -179,7 +179,7 @@ class Actuator:
 
 
     def from_quaternion_get_new_frame(self,Q):
-        if type(Q)==type((0,0,0)):
+        if (type(Q)==type((0,0,0))) or (type(Q)==type([0,0,0])):
             q1 = quaternion.quaternion(Q[0],Q[1],Q[2],Q[3])
         else :
             q1 = Q
@@ -202,7 +202,7 @@ class Actuator:
         Pc = self.Pc_z
         C = self.Cp_z
 
-        if type(Q)==type((0,0,0)):
+        if (type(Q)==type((0,0,0))) or (type(Q)==type([0,0,0])):
             quat = quaternion.quaternion(Q[0],Q[1],Q[2],Q[3])
         else : #If type of Q is quaternion
             quat = Q
