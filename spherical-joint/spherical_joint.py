@@ -6,7 +6,7 @@ from math import *
 
 
 class Actuator:
-    def __init__(self,Pc_z=[0,0,80],Cp_z=[0,0,60],R=35):
+    def __init__(self,Pc_z=[0,0,89.4],Cp_z=[0,0,64.227],R=39.162):
         self.Pc_z=Pc_z
         self.Cp_z=Cp_z
         self.R=R
