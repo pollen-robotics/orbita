@@ -1,6 +1,6 @@
 # Spherical-joint python module
 
-![Actuator description](/screenshot.png)
+![Actuator description](screenshot.png)
 
 To control this actuator, a vector must be used to represent the orientation of the platform.
 An angle must also be identified to know the rotation of the platform on its own Z axis.
