@@ -176,9 +176,22 @@ class Actuator:
 
 
 
+    def from_quaternion_get_new_frame(self,Q):
+        if type(Q)==type((0,0,0)):
+            q1 = quaternion.quaternion(Q[0],Q[1],Q[2],Q[3])
+
+        q1_inv = q1.inverse()
+
+
+        new_z = q1*self.z0_quat*q1_inv #Final Z
+        new_x = q1*self.x0_quat*q1_inv#Final X
+        new_y = q1*self.y0_quat*q1_inv#Final Y
+
+        X = [new_x.x, new_x.y, new_x.z]
+        Y = [new_y.x, new_y.y, new_y.z]
+        Z = [new_z.x, new_z.y, new_z.z]
+
+        return X,Y,Z
     #
-    # def from_quaternion_get_new_frame(self,quaternion):
-    #     ...
-    #
-    # def from_quaternion_get_angles(self,quaternion):
+    # def from_quaternion_get_angles(self,Q):
     #     ...
