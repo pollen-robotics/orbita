@@ -1,1 +1,1 @@
-from .spherical_joint import *
+from .spherical_joint import Actuator
