@@ -19,6 +19,7 @@ class Actuator:
     z0_quat = quaternion.quaternion(0,0,0,1)
 
     last_angles = [0,2*pi/3,-2*pi/3]
+    cap = [0,0,0]
 
     def from_vector_get_new_frame(self,vector,angle=0):
 
@@ -171,10 +172,30 @@ class Actuator:
             if q13>q13_0:
                 q13=q13-2*pi
 
+        q11=q11*180/pi
+        q12=(q12*180/pi)-120
+        q13=(q13*180/pi)+120
+
+        if abs(self.last_angles[0]-q11)>360-abs(self.last_angles[0]-q11):
+            self.cap[0]=self.cap[0]+np.sign(self.last_angles[0]-q11)*360
 
 
+        if abs(self.last_angles[1]-q12)>360-abs(self.last_angles[1]-q12):
 
-        return q11*180/pi,(q12*180/pi)-120,(q13*180/pi)+120
+            self.cap[1]=self.cap[1]+np.sign(self.last_angles[1]-q12)*360
+
+
+        if abs(self.last_angles[2]-q13)>360-abs(self.last_angles[2]-q13):
+            self.cap[2]=self.cap[2]+np.sign(self.last_angles[2]-q13)*360
+
+        self.last_angles = [q11,q12,q13]
+
+        q11 = q11+self.cap[0]
+        q12 = q12+self.cap[1]
+        q13 = q13+self.cap[2]
+
+
+        return q11,q12,q13
 
 
 
