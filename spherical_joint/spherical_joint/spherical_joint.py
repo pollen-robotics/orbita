@@ -226,11 +226,8 @@ class Actuator:
 
         return q11, q12, q13
 
-    def get_new_frame_from_quaternion(self, Q):
-        if isinstance(Q, tuple) or isinstance(Q, list):
-            q1 = quaternion.quaternion(Q[0], Q[1], Q[2], Q[3])
-        else:
-            q1 = Q
+    def get_new_frame_from_quaternion(self, qw, qx, qy, qz):
+        q1 = quaternion.quaternion(qw, qx, qy, qz)
         q1_inv = q1.inverse()
 
         new_z = q1*self.z0_quat*q1_inv  # Final Z
@@ -243,17 +240,14 @@ class Actuator:
 
         return X, Y, Z
 
-    def get_angles_from_quaternion(self, Q):
+    def get_angles_from_quaternion(self, qw, qx, qy, qz):
         R = self.R
         Pc = self.Pc_z
         C = self.Cp_z
 
-        if isinstance(Q, tuple) or isinstance(Q, list):
-            quat = quaternion.quaternion(Q[0], Q[1], Q[2], Q[3])
-        else:  # If type of Q is quaternion
-            quat = Q
+        quat = quaternion.quaternion(qw, qx, qy, qz)
         # Find q31 and q11 ###
-        X, Y, Z = self.get_new_frame_from_quaternion(quat)
+        X, Y, Z = self.get_new_frame_from_quaternion(qw, qx, qy, qz)
         q31_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
@@ -278,8 +272,8 @@ class Actuator:
         # 1st rotation quaternion
         q_offset = quaternion.quaternion(w_offset, x_offset,
                                          y_offset, z_offset)
-
-        X, Y, Z = self.get_new_frame_from_quaternion(quat*q_offset)
+        Q = quat*q_offset
+        X, Y, Z = self.get_new_frame_from_quaternion(Q.w, Q.x, Q.y, Q.z)
         q32_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
@@ -305,7 +299,8 @@ class Actuator:
         q_offset = quaternion.quaternion(w_offset, x_offset,
                                          y_offset, z_offset)
 
-        X, Y, Z = self.get_new_frame_from_quaternion(quat*q_offset)
+        Q = quat*q_offset
+        X, Y, Z = self.get_new_frame_from_quaternion(Q.w, Q.x, Q.y, Q.z)
         q33_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
