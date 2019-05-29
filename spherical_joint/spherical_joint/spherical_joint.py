@@ -20,7 +20,7 @@ class Actuator:
     last_angles = [0, 2*pi/3, -2*pi/3]
     offset = [0, 0, 0]
 
-    def from_vector_get_new_frame(self, vector, angle=0):
+    def get_new_frame_from_vector(self, vector, angle=0):
         beta = angle*pi/180
 
         # GOAL VECTOR (the desired Z axis)
@@ -75,7 +75,7 @@ class Actuator:
 
         return X, Y, Z
 
-    def from_vector_get_angles(self, vector, angle=0):
+    def get_angles_from_vector(self, vector, angle=0):
         # Find q31_0 and Q11_0
         beta = angle
         goal = vector
@@ -84,7 +84,7 @@ class Actuator:
         Pc = self.Pc_z
         C = self.Cp_z
 
-        X, Y, Z = self.from_vector_get_new_frame(goal)
+        X, Y, Z = self.get_new_frame_from_vector(goal)
         q31_0_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                   R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                   (R*Z[2] + C[2] - Pc[2])),
@@ -101,7 +101,7 @@ class Actuator:
         q11_0 = atan2(num1, den1)
 
         # Find q32_0 and q12_0
-        X, Y, Z = self.from_vector_get_new_frame(goal, 120)
+        X, Y, Z = self.get_new_frame_from_vector(goal, 120)
         q32_0_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                   R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                   (R*Z[2] + C[2] - Pc[2])),
@@ -118,7 +118,7 @@ class Actuator:
         q12_0 = atan2(num2, den2)
 
         # Find q33_0 and q13_0 ###
-        X, Y, Z = self.from_vector_get_new_frame(goal, -120)
+        X, Y, Z = self.get_new_frame_from_vector(goal, -120)
         q33_0_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                   R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                   (R*Z[2] + C[2] - Pc[2])),
@@ -135,7 +135,7 @@ class Actuator:
         q13_0 = atan2(num3, den3)
 
         # Find q31 and q11
-        X, Y, Z = self.from_vector_get_new_frame(goal, beta)
+        X, Y, Z = self.get_new_frame_from_vector(goal, beta)
         q31_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
@@ -152,7 +152,7 @@ class Actuator:
         q11 = atan2(num1, den1)
 
         # Find q32 and q12
-        X, Y, Z = self.from_vector_get_new_frame(goal, beta+120)
+        X, Y, Z = self.get_new_frame_from_vector(goal, beta+120)
         q32_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
@@ -169,7 +169,7 @@ class Actuator:
         q12 = atan2(num2, den2)
 
         # Find q33 and q13
-        X, Y, Z = self.from_vector_get_new_frame(goal, beta-120)
+        X, Y, Z = self.get_new_frame_from_vector(goal, beta-120)
         q33_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
@@ -226,7 +226,7 @@ class Actuator:
 
         return q11, q12, q13
 
-    def from_quaternion_get_new_frame(self, Q):
+    def get_new_frame_from_quaternion(self, Q):
         if isinstance(Q, tuple) or isinstance(Q, list):
             q1 = quaternion.quaternion(Q[0], Q[1], Q[2], Q[3])
         else:
@@ -243,7 +243,7 @@ class Actuator:
 
         return X, Y, Z
 
-    def from_quaternion_get_angles(self, Q):
+    def get_angles_from_quaternion(self, Q):
         R = self.R
         Pc = self.Pc_z
         C = self.Cp_z
@@ -253,7 +253,7 @@ class Actuator:
         else:  # If type of Q is quaternion
             quat = Q
         # Find q31 and q11 ###
-        X, Y, Z = self.from_quaternion_get_new_frame(quat)
+        X, Y, Z = self.get_new_frame_from_quaternion(quat)
         q31_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
@@ -279,7 +279,7 @@ class Actuator:
         q_offset = quaternion.quaternion(w_offset, x_offset,
                                          y_offset, z_offset)
 
-        X, Y, Z = self.from_quaternion_get_new_frame(quat*q_offset)
+        X, Y, Z = self.get_new_frame_from_quaternion(quat*q_offset)
         q32_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
@@ -305,7 +305,7 @@ class Actuator:
         q_offset = quaternion.quaternion(w_offset, x_offset,
                                          y_offset, z_offset)
 
-        X, Y, Z = self.from_quaternion_get_new_frame(quat*q_offset)
+        X, Y, Z = self.get_new_frame_from_quaternion(quat*q_offset)
         q33_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
                 R**2*Z[2]**2 - C[2]**2 + 2*C[2]*Pc[2] - Pc[2]**2)),
                 (R*Z[2] + C[2] - Pc[2])),
