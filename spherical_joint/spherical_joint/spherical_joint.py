@@ -1,3 +1,15 @@
+"""
+Notes
+-----
+This module is used to create an objet "Actuator" associated to the spherical
+joint in order to control it.
+
+In the end, the module can be used to calculate the angles in the disks needed
+to make the platform follow a vector or a quaternion provided by another device
+(IMU, trackers...)
+"""
+
+
 import numpy as np
 import quaternion
 from numpy import linalg as LA
@@ -5,6 +17,19 @@ from math import sin, cos, pi, sqrt, acos, atan2
 
 
 class Actuator:
+    """
+    This actuator is composed of three disks, linked to three arms and a
+    platform in the end. The goal is to orientate the platform, so the disks do
+    a rotation following a circle called "proximal circle".
+    Then, these disks make the arm rotate around the platform's center on a
+    circle called "distal circle".
+
+    Three parameters need to be set : The distal radius R and the 3D
+    coordinates of the centers of the distal circle and the proximal circle.
+
+    The mathematical explanation can be found in the spherical_symbolic.ipynb
+    notebook
+    """
     def __init__(self, Pc_z=[0, 0, 89.4], Cp_z=[0, 0, 64.227], R=39.162):
         self.Pc_z = Pc_z
         self.Cp_z = Cp_z
@@ -21,6 +46,28 @@ class Actuator:
     offset = [0, 0, 0]
 
     def get_new_frame_from_vector(self, vector, angle=0):
+        """
+        Compute the coordinates of the vectors of a new frame whose Z axis is
+        the chosen vector
+
+        Parameters
+        ----------
+        vector : array_like
+            Vector used to orientate the platform
+        angle : float
+            The desired angle of rotation of the platform on its Z axis
+            in degrees
+
+        Returns
+        -------
+        X : array_like
+            New X vector of the platform's frame
+        Y : array_like
+            New Y vector of the platform's frame
+        Z : array_like
+            New Z vector of the platform's frame
+        """
+
         beta = angle*pi/180
 
         # GOAL VECTOR (the desired Z axis)
@@ -76,7 +123,33 @@ class Actuator:
         return X, Y, Z
 
     def get_angles_from_vector(self, vector, angle=0):
-        # Find q31_0 and Q11_0
+        """
+        Compute the angles of the disks needed to rotate the platform to the
+        new frame, using the get_new_frame_from_vector function.
+
+        The expression of q3 and q1 angles are found with the notebook
+        spherical_symbolic.ipynb
+
+        Parameters
+        ----------
+        vector : array_like
+            Vector used to orientate the platform
+        angle : float
+            The desired angle of rotation of the platform on its Z axis
+            in degrees
+
+        Returns
+        -------
+        q11 : float
+            angle of the top disk in degrees
+        q12 : float
+            angle of the middle disk in degrees
+        q13 : float
+            angle of the bottom disk in degrees
+        """
+        # First, get the initial postions q11_0, q12_0 and q13_0
+
+        # Find q31_0 and q11_0
         beta = angle
         goal = vector
 
@@ -185,6 +258,8 @@ class Actuator:
         den3 = (Z[0]*cos(q33)+X[0]*sin(q33))
         q13 = atan2(num3, den3)
 
+        # If there is a discontinuity, add or remove 2*pi radians dependin on
+        # the sign of beta
         if beta > 0:
             if q11 < q11_0:
                 q11 = q11+2*pi
@@ -205,6 +280,9 @@ class Actuator:
         q12 = (q12*180/pi)-120
         q13 = (q13*180/pi)+120
 
+        # If the difference between current position and 360° is low,
+        # add or remove 360° to the offset applied on disks positions depending
+        # on the sign of this difference
         if abs(self.last_angles[0]-q11) > 360-abs(self.last_angles[0]-q11):
             self.offset[0] = self.offset[0] + \
                 np.sign(self.last_angles[0]-q11)*360
@@ -227,6 +305,31 @@ class Actuator:
         return q11, q12, q13
 
     def get_new_frame_from_quaternion(self, qw, qx, qy, qz):
+        """
+        Compute the coordinates of the vectors of a new frame got by a rotation
+        represented by a quaternion
+
+        Parameters
+        ----------
+        qw : float
+            w parameter of the quaternion used to rotate the platform
+        qx : float
+            x parameter of the quaternion used to rotate the platform
+        qy : float
+            y parameter of the quaternion used to rotate the platform
+        qz : float
+            z parameter of the quaternion used to rotate the platform
+
+        Returns
+        -------
+        X : array_like
+            New X vector of the platform's frame
+        Y : array_like
+            New Y vector of the platform's frame
+        Z : array_like
+            New Z vector of the platform's frame
+        """
+
         q1 = quaternion.quaternion(qw, qx, qy, qz)
         q1_inv = q1.inverse()
 
@@ -241,6 +344,34 @@ class Actuator:
         return X, Y, Z
 
     def get_angles_from_quaternion(self, qw, qx, qy, qz):
+        """
+        Compute the angles of the disks needed to rotate the platform to the
+        new frame, using the get_new_frame_from_vector function.
+
+        The expression of q3 and q1 angles are found with the notebook
+        spherical_symbolic.ipynb
+
+        Parameters
+        ----------
+        qw : float
+            w parameter of the quaternion used to rotate the platform
+        qx : float
+            x parameter of the quaternion used to rotate the platform
+        qy : float
+            y parameter of the quaternion used to rotate the platform
+        qz : float
+            z parameter of the quaternion used to rotate the platform
+
+        Returns
+        -------
+        q11 : float
+            angle of the top disk in degrees
+        q12 : float
+            angle of the middle disk in degrees
+        q13 : float
+            angle of the bottom disk in degrees
+        """
+
         R = self.R
         Pc = self.Pc_z
         C = self.Cp_z
@@ -264,12 +395,12 @@ class Actuator:
         q11 = atan2(num1, den1)
 
         # Find q32 and q12
+        # Add an offset of +120°
         w_offset = cos(2*pi/6.0)
         x_offset = sin(2*pi/6.0)*self.z0_quat.x
         y_offset = sin(2*pi/6.0)*self.z0_quat.y
         z_offset = sin(2*pi/6.0)*self.z0_quat.z
 
-        # 1st rotation quaternion
         q_offset = quaternion.quaternion(w_offset, x_offset,
                                          y_offset, z_offset)
         Q = quat*q_offset
@@ -290,12 +421,12 @@ class Actuator:
         q12 = atan2(num2, den2)
 
         # Find q33 and q13
+        # Add an offset of -120°
         w_offset = cos(-2*pi/6.0)
         x_offset = sin(-2*pi/6.0)*self.z0_quat.x
         y_offset = sin(-2*pi/6.0)*self.z0_quat.y
         z_offset = sin(-2*pi/6.0)*self.z0_quat.z
 
-        # 1st rotation quaternion
         q_offset = quaternion.quaternion(w_offset, x_offset,
                                          y_offset, z_offset)
 
@@ -318,6 +449,8 @@ class Actuator:
 
         last_angles = self.last_angles
 
+        # If there are discontinuities, add or remove 2*pi radians depending on
+        # The sign of the last angles
         if (abs(q11-last_angles[0]) >= 2.96):
             if last_angles[0] > 0:
                 q11 = q11+2*pi
@@ -339,7 +472,15 @@ class Actuator:
         return [q11*180/pi, (q12*180/pi)-120, (q13*180/pi)+120]
 
     def reset_last_angles(self):
+        """
+        reset the last_angles values, used to know the previous angles of the
+        disks
+        """
         self.last_angles = [0, 2*pi/3, -2*pi/3]
 
     def reset_offset(self):
+        """
+        reset the offset values, used to know the number of full tours done by
+        the disks
+        """
         self.offset = [0, 0, 0]
