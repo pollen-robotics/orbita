@@ -283,16 +283,16 @@ class Actuator:
         # If the difference between current position and 360° is low,
         # add or remove 360° to the offset applied on disks positions depending
         # on the sign of this difference
-        if abs(self.last_angles[0]-q11) > 360-abs(self.last_angles[0]-q11):
+        if abs(self.last_angles[0]-q11) > 360.01-abs(self.last_angles[0]-q11):
             self.offset[0] = self.offset[0] + \
                 np.sign(self.last_angles[0]-q11)*360
 
-        if abs(self.last_angles[1]-q12) > 360-abs(self.last_angles[1]-q12):
+        if abs(self.last_angles[1]-q12) > 360.01-abs(self.last_angles[1]-q12):
 
             self.offset[1] = self.offset[1] + \
                 np.sign(self.last_angles[1]-q12)*360
 
-        if abs(self.last_angles[2]-q13) > 360-abs(self.last_angles[2]-q13):
+        if abs(self.last_angles[2]-q13) > 360.01-abs(self.last_angles[2]-q13):
             self.offset[2] = self.offset[2] + \
                 np.sign(self.last_angles[2]-q13)*360
 
