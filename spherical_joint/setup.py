@@ -10,6 +10,6 @@ setup(
     description='Library used to control the spherical actuator',
     install_requires=[
         "numpy",
-        "quaternion",
+        "pyquaternion",
     ],
 )

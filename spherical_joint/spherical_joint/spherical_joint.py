@@ -11,7 +11,7 @@ to make the platform follow a vector or a quaternion provided by another device
 
 
 import numpy as np
-import quaternion
+from pyquaternion import Quaternion
 from numpy import linalg as LA
 from math import sin, cos, pi, sqrt, acos, atan2
 
@@ -38,9 +38,9 @@ class Actuator:
     x0 = [1, 0, 0]
     y0 = [0, 1, 0]
     z0 = [0, 0, 1]
-    x0_quat = quaternion.quaternion(0, 1, 0, 0)
-    y0_quat = quaternion.quaternion(0, 0, 1, 0)
-    z0_quat = quaternion.quaternion(0, 0, 0, 1)
+    x0_quat = Quaternion(0, 1, 0, 0)
+    y0_quat = Quaternion(0, 0, 1, 0)
+    z0_quat = Quaternion(0, 0, 0, 1)
 
     last_angles = [0, 2*pi/3, -2*pi/3]
     offset = [0, 0, 0]
@@ -86,11 +86,10 @@ class Actuator:
         alpha = acos(np.vdot(self.z0, goal_norm))  # Angle of rotation
 
         if alpha == 0:
-            v = quaternion.quaternion(0.0, 0.0, 0.0, 1.0)
+            v = Quaternion(0.0, 0.0, 0.0, 1.0)
 
         else:  # Vector of rotation as a quaternion
-            v = quaternion.quaternion(0.0, vector_norm[0], vector_norm[1],
-                                      vector_norm[2])
+            v = Quaternion(0.0, vector_norm[0], vector_norm[1], vector_norm[2])
 
         # QUATERNION OF ROTATION ###
         w1 = cos(alpha/2.0)
@@ -98,8 +97,8 @@ class Actuator:
         y1 = sin(alpha/2.0)*v.y
         z1 = sin(alpha/2.0)*v.z
 
-        q1 = quaternion.quaternion(w1, x1, y1, z1)  # 1st rotation quaternion
-        q1_inv = q1.inverse()
+        q1 = Quaternion(w1, x1, y1, z1)  # 1st rotation quaternion
+        q1_inv = q1.inverse
 
         z_prime = q1*self.z0_quat*q1_inv
 
@@ -109,8 +108,8 @@ class Actuator:
         z2 = sin(beta/2.0)*z_prime.z
 
         # Quaternion of the rotation on new z axis
-        q2 = quaternion.quaternion(w2, x2, y2, z2)
-        q2_inv = q2.inverse()
+        q2 = Quaternion(w2, x2, y2, z2)
+        q2_inv = q2.inverse
 
         new_z = q2*z_prime*q2_inv  # Final Z
         new_x = q2*(q1*self.x0_quat*q1_inv)*q2_inv  # Final X
@@ -330,8 +329,8 @@ class Actuator:
             New Z vector of the platform's frame
         """
 
-        q1 = quaternion.quaternion(qw, qx, qy, qz)
-        q1_inv = q1.inverse()
+        q1 = Quaternion(qw, qx, qy, qz)
+        q1_inv = q1.inverse
 
         new_z = q1*self.z0_quat*q1_inv  # Final Z
         new_x = q1*self.x0_quat*q1_inv  # Final X
@@ -376,7 +375,7 @@ class Actuator:
         Pc = self.Pc_z
         C = self.Cp_z
 
-        quat = quaternion.quaternion(qw, qx, qy, qz)
+        quat = Quaternion(qw, qx, qy, qz)
         # Find q31 and q11 ###
         X, Y, Z = self.get_new_frame_from_quaternion(qw, qx, qy, qz)
         q31_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
@@ -401,8 +400,7 @@ class Actuator:
         y_offset = sin(2*pi/6.0)*self.z0_quat.y
         z_offset = sin(2*pi/6.0)*self.z0_quat.z
 
-        q_offset = quaternion.quaternion(w_offset, x_offset,
-                                         y_offset, z_offset)
+        q_offset = Quaternion(w_offset, x_offset, y_offset, z_offset)
         Q = quat*q_offset
         X, Y, Z = self.get_new_frame_from_quaternion(Q.w, Q.x, Q.y, Q.z)
         q32_ = [2*atan2((R*X[2] - sqrt(R**2*X[2]**2 +
@@ -427,8 +425,7 @@ class Actuator:
         y_offset = sin(-2*pi/6.0)*self.z0_quat.y
         z_offset = sin(-2*pi/6.0)*self.z0_quat.z
 
-        q_offset = quaternion.quaternion(w_offset, x_offset,
-                                         y_offset, z_offset)
+        q_offset = Quaternion(w_offset, x_offset, y_offset, z_offset)
 
         Q = quat*q_offset
         X, Y, Z = self.get_new_frame_from_quaternion(Q.w, Q.x, Q.y, Q.z)
