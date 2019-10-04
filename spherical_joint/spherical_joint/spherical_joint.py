@@ -30,17 +30,19 @@ class Actuator:
     The mathematical explanation can be found in the spherical_symbolic.ipynb
     notebook
     """
-    def __init__(self, Pc_z=[0, 0, 89.4], Cp_z=[0, 0, 64.227], R=39.162):
+    def __init__(self, Pc_z=[0, 0, 89.4],
+                 Cp_z=[0, 0, 64.227], R=39.162,
+                 R0=[[1, 0, 0], [0, 1, 0], [0, 0, 1]]):
         self.Pc_z = Pc_z
         self.Cp_z = Cp_z
         self.R = R
 
-    x0 = [1, 0, 0]
-    y0 = [0, 1, 0]
-    z0 = [0, 0, 1]
-    x0_quat = Quaternion(0, 1, 0, 0)
-    y0_quat = Quaternion(0, 0, 1, 0)
-    z0_quat = Quaternion(0, 0, 0, 1)
+        self.x0 = R0[0]
+        self.y0 = R0[1]
+        self.z0 = R0[2]
+        self.x0_quat = Quaternion(0, self.x0[0], self.x0[1], self.x0[2])
+        self.y0_quat = Quaternion(0, self.y0[0], self.y0[1], self.y0[2])
+        self.z0_quat = Quaternion(0, self.z0[0], self.z0[1], self.z0[2])
 
     last_angles = [0, 2*pi/3, -2*pi/3]
     offset = [0, 0, 0]
