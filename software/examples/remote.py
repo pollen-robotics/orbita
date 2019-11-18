@@ -1,5 +1,5 @@
 from pyluos import Robot
-from spherical_joint import Actuator
+from orbita import Actuator
 import time
 
 a = Actuator()
