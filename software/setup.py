@@ -1,10 +1,10 @@
 from distutils.core import setup
 
 setup(
-    name='spherical_joint',
+    name='orbita',
     version='0.1.0',
     author='Pollen Robotics',
-    packages=['spherical_joint'],
+    packages=['orbita'],
     url='https://github.com/pollen-robotics/spherical-joint',
     license='LICENSE.txt',
     description='Library used to control the spherical actuator',
