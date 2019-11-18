@@ -1,1 +1,1 @@
-from .orbita import Actuator
+from .orbita import Actuator  # noqa: F401
