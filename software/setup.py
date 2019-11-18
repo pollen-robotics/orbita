@@ -15,7 +15,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
 
-    url='https://github.com/pollen-robotics/spherical-joint',
+    url='https://github.com/pollen-robotics/orbita',
     author='Pollen Robotics',
     author_email='contact@pollen-robotics.com',
 
