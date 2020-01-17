@@ -1,6 +1,6 @@
 # Orbita python module
 
-![Actuator description](screenshot.png)
+![Actuator description](orbita.png)
 
 To control this actuator, a vector must be used to represent the orientation of the platform.
 An angle must also be identified to know the rotation of the platform on its own Z axis.
@@ -23,13 +23,14 @@ pip install orbita
 ```python
 from orbita import *
 a = Actuator([0,0,85],[0,0,65],35) #Creates the actuator object
-a.from_vector_get_new_frame(vector,angle) #returns new X,Y,Z vectors coordinates
-a.from_vector_get_angles(vector,angle) #returns q11,q12 and q13 angles values
-a.from_quaternion_get_new_frame(quaternion) #returns new X,Y,Z vectors coordinates
-a.from_quaternion_get_angles(quaternion) #returns q11,q12 and q13 angles values
+a.get_new_frame_from_vector(vector,angle) #returns new X,Y,Z vectors coordinates
+a.get_angles_from_vector(vector,angle) #returns q11,q12 and q13 angles values
+a.get_new_frame_from_quaternion(quaternion) #returns new X,Y,Z vectors coordinates
+a.get_angles_from_quaternion(quaternion) #returns q11,q12 and q13 angles values
 ```
-The last method needs the last angular position of the disks.
+The last method needs the last angular position of the disks and an offset of 360°.
 These values need to be reset everytime the user reset the position of the disks.
 ```python
 a.reset_last_angles()
+a.reset_offset()
 ```
