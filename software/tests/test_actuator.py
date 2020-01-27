@@ -51,12 +51,12 @@ def test_last_angles():
     a1 = Actuator()
     a2 = Actuator()
 
-    assert a1.last_angles == [0, 2 * np.pi / 3, -2 * np.pi / 3]
-    assert a2.last_angles == [0, 2 * np.pi / 3, -2 * np.pi / 3]
+    assert np.allclose(a1.last_angles, [0, 2 * np.pi / 3, -2 * np.pi / 3])
+    assert np.allclose(a2.last_angles, [0, 2 * np.pi / 3, -2 * np.pi / 3])
 
     a1.last_angles[1] = 0
 
-    assert a2.last_angles == [0, 2 * np.pi / 3, -2 * np.pi / 3]
+    assert np.allclose(a2.last_angles, [0, 2 * np.pi / 3, -2 * np.pi / 3])
 
 
 def test_new_frame_from_vector():
