@@ -137,7 +137,7 @@ def test_new_frame_from_quaternion():
     assert np.allclose(Z, a.z0)
 
     q1 = Quaternion(
-        axis=[np.random.rand(), np.random.rand(), np.random.rand()], 
+        axis=[np.random.rand(), np.random.rand(), np.random.rand()],
         degrees=np.random.rand()*90,
     )
     q2 = q1.inverse
