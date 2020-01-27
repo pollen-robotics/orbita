@@ -15,9 +15,9 @@ def rot(axis, deg):
 def test_actuator_setup():
     actuator = Actuator()
 
-    assert actuator.x0 == np.array((1, 0, 0))
-    assert actuator.x0 == np.array((0, 1, 0))
-    assert actuator.x0 == np.array((0, 0, 1))
+    assert np.allclose(actuator.x0, np.array((1, 0, 0)))
+    assert np.allclose(actuator.y0, np.array((0, 1, 0)))
+    assert np.allclose(actuator.z0, np.array((0, 0, 1)))
 
     assert actuator.x0_quat == Quaternion(0, 1, 0, 0)
     assert actuator.y0_quat == Quaternion(0, 0, 1, 0)
@@ -26,9 +26,9 @@ def test_actuator_setup():
     R0 = np.dot(rot('z', 60), rot('y', 10))
     actuator = Actuator(R0=R0)
 
-    assert actuator.x0 == R0[0]
-    assert actuator.x0 == R0[1]
-    assert actuator.x0 == R0[2]
+    assert np.allclose(actuator.x0, R0[0])
+    assert np.allclose(actuator.y0, R0[1])
+    assert np.allclose(actuator.z0, R0[2])
 
     assert actuator.x0_quat == Quaternion(0, R0[0][0], R0[0][1], R0[0][2])
     assert actuator.y0_quat == Quaternion(0, R0[1][0], R0[1][1], R0[1][2])
