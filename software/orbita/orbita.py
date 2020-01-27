@@ -300,10 +300,6 @@ class Actuator(object):
             angle of the bottom disk in degrees
         """
 
-        R = self.R
-        Pc = self.Pc_z
-        C = self.Cp_z
-
         def get_frame(q):
             return self.get_new_frame_from_quaternion(q.w, q.x, q.y, q.z)
 
