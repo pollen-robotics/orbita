@@ -44,8 +44,8 @@ class Actuator:
         self.y0_quat = Quaternion(0, self.y0[0], self.y0[1], self.y0[2])
         self.z0_quat = Quaternion(0, self.z0[0], self.z0[1], self.z0[2])
 
-    last_angles = [0, 2*pi/3, -2*pi/3]
-    offset = [0, 0, 0]
+        self.last_angles = [0, 2*pi/3, -2*pi/3]
+        self.offset = [0, 0, 0]
 
     def get_new_frame_from_vector(self, vector, angle=0):
         """
