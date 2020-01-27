@@ -24,5 +24,8 @@ setup(
     install_requires=[
         'numpy',
         'pyquaternion',
-        ]
+        ],
+    extras_require={
+        'test': ['scipy>=1.4.0'],
+    },
 )
