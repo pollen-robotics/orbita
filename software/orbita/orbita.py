@@ -153,7 +153,7 @@ class Actuator(object):
         )
         return q3, q1
 
-    def get_angles_from_vector(self, vector, angle=0):
+    def get_angles_from_vector(self, vector, angle=0):  # noqa: C901
         """
         Compute the angles of the disks needed to rotate the platform to the
         new frame, using the get_new_frame_from_vector function.
