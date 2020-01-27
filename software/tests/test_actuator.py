@@ -152,13 +152,13 @@ def test_new_frame_from_quaternion():
 def test_multi_turn():
     a = Actuator()
 
-    for x in range(0, 1080):
+    for x in range(0, 1080, 10):
         q11, q12, q13 = a.get_angles_from_vector([0, 0, 1], x)
         assert isclose(q11, x, abs_tol=1e-9)
         assert isclose(q12, x, abs_tol=1e-9)
         assert isclose(q13, x, abs_tol=1e-9)
 
-    for x in range(1080, 0, -1):
+    for x in range(1080, 0, -10):
         q11, q12, q13 = a.get_angles_from_vector([0, 0, 1], x)
         assert isclose(q11, x, abs_tol=1e-9)
         assert isclose(q12, x, abs_tol=1e-9)
