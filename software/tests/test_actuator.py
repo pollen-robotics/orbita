@@ -170,3 +170,18 @@ def test_domain_error():
 
     with pytest.raises(ValueError, match=r"math domain error"):
         X, Y, Z = a.get_angles_from_vector([1, 0, 0], np.random.rand() * 90)
+
+
+def test_transform():
+    a = Actuator()
+
+    vo = np.random.rand(3)
+    q = a.find_quaternion_transform(vo, vo)
+    assert q == Quaternion(1, 0, 0, 0)
+
+    vo = [1, 0, 0]
+    alpha = np.random.rand() * 90
+    r = R.from_euler('z', alpha, degrees=True)
+    vt = np.dot(r.as_matrix(), vo)
+    q = a.find_quaternion_transform(vo, vt)
+    assert q == Quaternion(axis=[0, 0, 1], degrees=alpha)

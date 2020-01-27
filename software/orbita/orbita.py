@@ -354,6 +354,25 @@ class Actuator(object):
             np.rad2deg(q13) + 120,
         )
 
+    def find_quaternion_transform(self, vect_origin, vect_target):
+        vo = np.array(vect_origin)
+        if np.any(vo):
+            vo = vo / LA.norm(vo)
+
+        vt = np.array(vect_target)
+        if np.any(vt):
+            vt = vt / LA.norm(vt)
+
+        V = np.cross(vo, vt)
+        if np.any(V):
+            V = V / LA.norm(V)
+
+        alpha = np.arccos(np.dot(vo, vt))
+        if np.isnan(alpha) or alpha < 1e-6:
+            return Quaternion(1, 0, 0, 0)
+
+        return Quaternion(axis=V, radians=alpha)
+
     def reset_last_angles(self):
         """
         reset the last_angles values, used to know the previous angles of the
