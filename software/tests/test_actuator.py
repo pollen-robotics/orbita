@@ -185,3 +185,25 @@ def test_transform():
     vt = np.dot(r.as_matrix(), vo)
     q = a.find_quaternion_transform(vo, vt)
     assert q == Quaternion(axis=[0, 0, 1], degrees=alpha)
+
+
+def test_get_angles_from_quaternion():
+    a = Actuator()
+
+    x = np.random.rand() * 180 - 90
+    q = Quaternion(axis=[0, 0, 1], degrees=x)
+    q11, q12, q13 = a.get_angles_from_quaternion(q.w, q.x, q.y, q.z)
+
+    assert isclose(q11, x)
+    assert isclose(q12, x)
+    assert isclose(q13, x)
+
+    a = Actuator(R0=rot('z', 60))
+
+    x = np.random.rand() * 180 - 90
+    q = Quaternion(axis=[0, 0, 1], degrees=x)
+    q11, q12, q13 = a.get_angles_from_quaternion(q.w, q.x, q.y, q.z)
+
+    assert isclose(q11, x - 60)
+    assert isclose(q12, x - 60)
+    assert isclose(q13, x - 60)
