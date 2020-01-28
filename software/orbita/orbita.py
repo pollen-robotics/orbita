@@ -304,7 +304,7 @@ class Actuator(object):
             return self.get_new_frame_from_quaternion(q.w, q.x, q.y, q.z)
 
         quat = Quaternion(qw, qx, qy, qz)
-        q31, q11 = self._eq(get_frame())
+        q31, q11 = self._eq(*get_frame(quat))
 
         # Find q32 and q12
         # Add an offset of +120°
@@ -314,7 +314,7 @@ class Actuator(object):
         z_offset = np.sin(2 * np.pi / 6.0) * self.z0_quat.z
         q_offset = Quaternion(w_offset, x_offset, y_offset, z_offset)
         Q = quat * q_offset
-        q32, q12 = self._eq(get_frame(Q))
+        q32, q12 = self._eq(*get_frame(Q))
 
         # Find q33 and q13
         # Add an offset of -120°
@@ -324,7 +324,7 @@ class Actuator(object):
         z_offset = np.sin(-2 * np.pi / 6.0) * self.z0_quat.z
         q_offset = Quaternion(w_offset, x_offset, y_offset, z_offset)
         Q = quat * q_offset
-        q33, q13 = self._eq(get_frame(Q))
+        q33, q13 = self._eq(*get_frame(Q))
 
         last_angles = self.last_angles
 
