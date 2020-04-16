@@ -119,4 +119,5 @@ firmware/inc/stm32f0xx_hal_conf.h
 firmware/*.ld
 firmware/Startup/*
 firmware/*.bak
-firmware/Driver/**
+firmware/Drivers/**
+firmware/.gitignore
