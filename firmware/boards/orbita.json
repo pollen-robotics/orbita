@@ -6,7 +6,7 @@
       "-DSTM32G4xx",
       "-DSTM32G474x",
       "-DUSE_FULL_LL_DRIVER",
-      "-DHAL=l0 "
+      "-DHAL=orbita "
     ],
     "f_cpu": "170000000L",
     "mcu": "stm32g474ret6"
@@ -22,7 +22,6 @@
   "frameworks": [
     "stm32cube"
   ],
-  "platform_packages": "framework-stm32cube@https://github.com/nicolas-rabault/framework-stm32cube_g4_.git",
   "name": "Orbita",
   "upload": {
     "maximum_ram_size": 131072,
