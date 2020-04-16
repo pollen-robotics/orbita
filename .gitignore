@@ -102,3 +102,21 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# mac specific
+**/.DS_Store
+.DS_Store
+
+# firmware
+firmware/.pio/**
+firmware/.vscode/**
+firmware/.mxproject
+firmware/.osx.project
+firmware/.project
+firmware/.cproject
+firmware/*.xml
+firmware/inc/stm32f0xx_hal_conf.h
+firmware/*.ld
+firmware/Startup/*
+firmware/*.bak
+firmware/Driver/**
