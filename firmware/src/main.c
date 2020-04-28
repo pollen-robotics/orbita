@@ -21,6 +21,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "crc.h"
 #include "i2c.h"
 #include "tim.h"
 #include "usart.h"
@@ -29,7 +30,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "luos.h"
+#include "controlled_motor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -102,18 +104,42 @@ int main(void)
   MX_TIM20_Init();
   MX_USART1_UART_Init();
   MX_USB_Device_Init();
+  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
+    HAL_GPIO_WritePin(AS5045B_MOSI_GPIO_Port, AS5045B_MOSI_Pin, GPIO_PIN_RESET);
+    HAL_Delay(500);
+    luos_init();
+    controlled_motor_init();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+    unsigned long last_led_systick = 0;
+    char state = 0;
+    while (1)
+    {
+        luos_loop();
+        controlled_motor_loop();
+        unsigned long timestamp = HAL_GetTick();
+        if (timestamp - last_led_systick > 1000)
+        {
+            if (state == 0)
+            {
+                status_led(1);
+                state = 1;
+            }
+            else
+            {
+                status_led(0);
+                state = 0;
+            }
+            last_led_systick = timestamp;
+        }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+    }
   /* USER CODE END 3 */
 }
 
@@ -186,7 +212,7 @@ void SystemClock_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+    /* User can add his own implementation to report the HAL error return state */
 
   /* USER CODE END Error_Handler_Debug */
 }
@@ -202,7 +228,7 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 { 
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
+    /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
