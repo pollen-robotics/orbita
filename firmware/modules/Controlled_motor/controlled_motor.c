@@ -546,14 +546,14 @@ void controlled_motor_loop(void)
     // ************* Values computation *************
     // angular_posistion => degree
     int32_t encoder_count = (int16_t)TIM2->CNT;
-    motor[0].angular_position += (angular_position_t)((double)encoder_count / (double)(motor[0].motor_reduction * motor[0].resolution)) * 360.0;
     TIM2->CNT = 0;
+    motor[0].angular_position += (angular_position_t)((double)encoder_count / (double)(motor[0].motor_reduction * motor[0].resolution)) * 360.0;
     encoder_count = (int16_t)TIM3->CNT;
-    motor[1].angular_position -= (angular_position_t)((double)encoder_count / (double)(motor[1].motor_reduction * motor[1].resolution)) * 360.0;
     TIM3->CNT = 0;
+    motor[1].angular_position -= (angular_position_t)((double)encoder_count / (double)(motor[1].motor_reduction * motor[1].resolution)) * 360.0;
     encoder_count = (int16_t)TIM4->CNT;
-    motor[2].angular_position -= (angular_position_t)((double)encoder_count / (double)(motor[2].motor_reduction * motor[2].resolution)) * 360.0;
     TIM4->CNT = 0;
+    motor[2].angular_position -= (angular_position_t)((double)encoder_count / (double)(motor[2].motor_reduction * motor[2].resolution)) * 360.0;
 
     // linear_distance => m
     motor[0].linear_position = (motor[0].angular_position / 360.0) * M_PI * motor[0].wheel_diameter;
