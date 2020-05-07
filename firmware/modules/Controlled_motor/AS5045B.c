@@ -15,21 +15,7 @@ AS5045B_functions AS5045 = {
 };
 
 static void AS5045B_Delay(volatile uint32_t);
-static void SSI_MOSI_HighImpedance(void);
-static void SSI_MOSI_LowImpedance(void);
-static void SSI_ClockPulses(uint8_t nbClock);
 static uint8_t SSI_SingleClockPulse_Read(GPIO_TypeDef *, uint16_t);
-static void SSI_SingleClockPulse_Write(GPIO_TypeDef *, uint16_t, uint8_t);
-
-// SSI operation functions
-static void SetupCondition(void);
-static void exitCondition(void);
-static void operationModeRead(void);
-static void operationModeWrite(void);
-//static void operationModeProg(void);
-
-// Utilities functions
-static uint16_t ReverseBits(uint32_t);
 
 uint8_t ParityCheck(AbsAng_struct_t *Buffer)
 {
@@ -73,38 +59,6 @@ static void AngRead(AbsAng_struct_t *Buffer)
     SSI_SS_High;
     SSI_Delay;
     return;
-}
-
-static void SSI_MOSI_LowImpedance(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = AS5045B_MOSI_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-}
-
-static void SSI_MOSI_HighImpedance(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = AS5045B_MOSI_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-}
-
-static void SSI_ClockPulses(uint8_t nbClock)
-{
-    do
-    {
-        SSI_CLK_High;
-        SSI_Delay;
-        SSI_CLK_Low;
-        SSI_Delay;
-        nbClock--;
-    } while (nbClock != 0);
 }
 
 static void AS5045B_Delay(volatile uint32_t time)
