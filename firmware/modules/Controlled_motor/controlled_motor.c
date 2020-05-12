@@ -5,11 +5,13 @@
 #include <float.h>
 #include "luos.h"
 #include "AS5045B.h"
+#include "MAX31730.h"
 #include "main.h"
 #include "luos_board.h"
 
 #define ASSERV_PERIOD 1
 #define SPEED_PERIOD 50
+#define TEMP_PERIOD 1000
 #define SPEED_NB_INTEGRATION SPEED_PERIOD / ASSERV_PERIOD
 #define SAMPLING_PERIOD_MS 10.0
 #define BUFFER_SIZE 1000
@@ -202,6 +204,7 @@ void enable_motor(uint8_t index, char state)
 
 void rx_mot_cb(module_t *module, msg_t *msg)
 {
+    static temperature_t last_temp[0] = {0.0};
     uint8_t index = motor_id_from_module(module);
     if (msg->header.cmd == ASK_PUB_CMD)
     {
@@ -242,6 +245,15 @@ void rx_mot_cb(module_t *module, msg_t *msg)
         {
             current_to_msg(&motor[index].current, &pub_msg);
             luos_send(module, &pub_msg);
+        }
+        if (motor[index].mode.temperature)
+        {
+            // Check if temperature moved and send it
+            if (last_temp[index] != motor[index].temperature)
+            {
+                temperature_to_msg(&motor[index].temperature, &pub_msg);
+                luos_send(module, &pub_msg);
+            }
         }
         return;
     }
@@ -466,6 +478,7 @@ void controlled_motor_init(void)
     enable_motor(2, 0);
     motor[0].mode.mode_compliant = 1;
     motor[0].mode.current = 0;
+    motor[0].mode.temperature = 1;
     motor[0].mode.mode_ratio = 1;
     motor[0].mode.mode_angular_position = 0;
     motor[0].mode.mode_angular_speed = 0;
@@ -525,6 +538,13 @@ void controlled_motor_init(void)
     motor[1].angular_position = (angular_position_t)((double)angles[1].Bits.AngPos / (double)(motor[1].motor_reduction * motor[1].resolution)) * 360.0;
     motor[2].angular_position = (angular_position_t)((double)angles[2].Bits.AngPos / (double)(motor[2].motor_reduction * motor[2].resolution)) * 360.0;
 
+    // get motor temperatures
+    temperature_t temperatures[3] = {0.0};
+    MAX31730.Read((float *)temperatures);
+    motor[0].temperature = temperatures[0];
+    motor[1].temperature = temperatures[1];
+    motor[2].temperature = temperatures[2];
+
     modules[0] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot1");
     modules[1] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot2");
     modules[2] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot3");
@@ -537,6 +557,7 @@ void controlled_motor_loop(void)
 {
     // Time management vars
     static uint32_t last_asserv_systick = 0;
+    static uint32_t last_temp_systick = 0;
     uint32_t timestamp = HAL_GetTick();
     uint32_t deltatime = timestamp - last_asserv_systick;
 
@@ -572,6 +593,17 @@ void controlled_motor_loop(void)
         motor[2].current = ((float)HAL_ADCEx_InjectedGetValue(&hadc1, ADC_REGULAR_RANK_2) * VREF / 4096.0f) / 2.4f;
     }
     HAL_ADCEx_InjectedStop(&hadc1);
+
+    // temperature => °C
+    if ((timestamp - last_temp_systick) > TEMP_PERIOD)
+    {
+        last_temp_systick = timestamp;
+        temperature_t temperatures[3] = {0.0};
+        MAX31730.Read((float *)temperatures);
+        motor[0].temperature = temperatures[0];
+        motor[1].temperature = temperatures[1];
+        motor[2].temperature = temperatures[2];
+    }
 
     if (deltatime >= ASSERV_PERIOD)
     {
