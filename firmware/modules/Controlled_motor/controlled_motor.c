@@ -538,6 +538,9 @@ void controlled_motor_init(void)
     motor[1].angular_position = (angular_position_t)((double)angles[1].Bits.AngPos / (double)(motor[1].motor_reduction * motor[1].resolution)) * 360.0;
     motor[2].angular_position = (angular_position_t)((double)angles[2].Bits.AngPos / (double)(motor[2].motor_reduction * motor[2].resolution)) * 360.0;
 
+    // set motors temperatures configurations
+    MAX31730.SetFil(ENABLE);
+    MAX31730.SetThr(35);
     // get motor temperatures
     temperature_t temperatures[3] = {0.0};
     MAX31730.Read((float *)temperatures);
