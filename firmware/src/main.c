@@ -115,27 +115,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    unsigned long last_led_systick = 0;
-    char state = 0;
     while (1)
     {
         luos_loop();
         controlled_motor_loop();
-        unsigned long timestamp = HAL_GetTick();
-        if (timestamp - last_led_systick > 1000)
-        {
-            if (state == 0)
-            {
-                status_led(1);
-                state = 1;
-            }
-            else
-            {
-                status_led(0);
-                state = 0;
-            }
-            last_led_systick = timestamp;
-        }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
