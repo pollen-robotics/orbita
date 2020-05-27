@@ -9,6 +9,9 @@
 #include "main.h"
 #include "luos_board.h"
 
+#define STRINGIFY(s) STRINGIFY1(s)
+#define STRINGIFY1(s) #s
+
 #define ASSERV_PERIOD 1
 #define SPEED_PERIOD 50
 #define TEMP_PERIOD 1000
@@ -548,9 +551,9 @@ void controlled_motor_init(void)
     motor[1].temperature = temperatures[1];
     motor[2].temperature = temperatures[2];
 
-    modules[0] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot1");
-    modules[1] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot2");
-    modules[2] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot3");
+    modules[0] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot1", STRINGIFY(VERSION));
+    modules[1] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot2", STRINGIFY(VERSION));
+    modules[2] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "orbita_mot3", STRINGIFY(VERSION));
 
     // enable ABI mode on sensors
     HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_RESET);
