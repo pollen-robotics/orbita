@@ -540,7 +540,7 @@ void controlled_motor_init(void)
 
     // set motors temperatures configurations
     MAX31730.SetFil(ENABLE);
-    MAX31730.SetThr(35);
+    MAX31730.SetThr(40);
     // get motor temperatures
     temperature_t temperatures[3] = {0.0};
     MAX31730.Read((float *)temperatures);
