@@ -207,7 +207,7 @@ void enable_motor(uint8_t index, char state)
 
 void rx_mot_cb(module_t *module, msg_t *msg)
 {
-    static temperature_t last_temp[0] = {0.0};
+    static temperature_t last_temp[3] = {0.0};
     uint8_t index = motor_id_from_module(module);
     if (msg->header.cmd == ASK_PUB_CMD)
     {
@@ -254,6 +254,7 @@ void rx_mot_cb(module_t *module, msg_t *msg)
             // Check if temperature moved and send it
             if (last_temp[index] != motor[index].temperature)
             {
+                last_temp[index] = motor[index].temperature;
                 temperature_to_msg(&motor[index].temperature, &pub_msg);
                 luos_send(module, &pub_msg);
             }
