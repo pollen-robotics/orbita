@@ -12,6 +12,9 @@
 #define STRINGIFY(s) STRINGIFY1(s)
 #define STRINGIFY1(s) #s
 
+#define MINI 0
+#define MAXI 1
+
 #define ASSERV_PERIOD 1
 #define SPEED_PERIOD 50
 #define TEMP_PERIOD 1000
@@ -73,7 +76,7 @@ void HAL_SYSTICK_Motor_Callback(void)
             if (control[i].mode_rec)
             {
                 // We have to save a sample of current position
-                set_sample(&measurement[i], &motor[i].angular_position);
+                set_sample(&measurement[i], (void *)&motor[i].angular_position);
             }
         }
         last_rec_systick = HAL_GetTick();
@@ -101,7 +104,7 @@ void HAL_SYSTICK_Motor_Callback(void)
                 }
                 else
                 {
-                    get_sample(&trajectory[i], &motor[i].target_angular_position);
+                    get_sample(&trajectory[i], (void *)&motor[i].target_angular_position);
                 }
             }
         }
@@ -225,28 +228,28 @@ void rx_mot_cb(module_t *module, msg_t *msg)
             }
             else
             {
-                angular_position_to_msg(&motor[index].angular_position, &pub_msg);
+                angular_position_to_msg((const angular_position_t *)&motor[index].angular_position, &pub_msg);
                 luos_send(module, &pub_msg);
             }
         }
         if (motor[index].mode.angular_speed)
         {
-            angular_speed_to_msg(&motor[index].angular_speed, &pub_msg);
+            angular_speed_to_msg((const angular_speed_t *)&motor[index].angular_speed, &pub_msg);
             luos_send(module, &pub_msg);
         }
         if (motor[index].mode.linear_position)
         {
-            linear_position_to_msg(&motor[index].linear_position, &pub_msg);
+            linear_position_to_msg((const linear_position_t *)&motor[index].linear_position, &pub_msg);
             luos_send(module, &pub_msg);
         }
         if (motor[index].mode.linear_speed)
         {
-            linear_speed_to_msg(&motor[index].linear_speed, &pub_msg);
+            linear_speed_to_msg((const linear_speed_t *)&motor[index].linear_speed, &pub_msg);
             luos_send(module, &pub_msg);
         }
         if (motor[index].mode.current)
         {
-            current_to_msg(&motor[index].current, &pub_msg);
+            current_to_msg((const current_t *)&motor[index].current, &pub_msg);
             luos_send(module, &pub_msg);
         }
         if (motor[index].mode.temperature)
@@ -255,7 +258,7 @@ void rx_mot_cb(module_t *module, msg_t *msg)
             if (last_temp[index] != motor[index].temperature)
             {
                 last_temp[index] = motor[index].temperature;
-                temperature_to_msg(&motor[index].temperature, &pub_msg);
+                temperature_to_msg((const temperature_t *)&motor[index].temperature, &pub_msg);
                 luos_send(module, &pub_msg);
             }
         }
@@ -288,7 +291,7 @@ void rx_mot_cb(module_t *module, msg_t *msg)
         if (msg->header.size == sizeof(motor_mode_t))
         {
             // fill the message infos
-            memcpy(&motor[index].mode, msg->data, msg->header.size);
+            memcpy((void *)&motor[index].mode, msg->data, msg->header.size);
             enable_motor(index, motor[index].mode.mode_compliant == 0);
             if (motor[index].mode.mode_compliant == 0)
             {
@@ -313,13 +316,13 @@ void rx_mot_cb(module_t *module, msg_t *msg)
     if (msg->header.cmd == RESOLUTION)
     {
         // set the encoder resolution
-        memcpy(&motor[index].resolution, msg->data, sizeof(float));
+        memcpy((void *)&motor[index].resolution, msg->data, sizeof(float));
         return;
     }
     if (msg->header.cmd == REDUCTION)
     {
         // set the motor reduction
-        memcpy(&motor[index].motor_reduction, msg->data, sizeof(float));
+        memcpy((void *)&motor[index].motor_reduction, msg->data, sizeof(float));
         return;
     }
     if (msg->header.cmd == REINIT)
@@ -335,13 +338,13 @@ void rx_mot_cb(module_t *module, msg_t *msg)
     if (msg->header.cmd == DIMENSION)
     {
         // set the wheel diameter m
-        linear_position_from_msg(&motor[index].wheel_diameter, msg);
+        linear_position_from_msg((linear_position_t *)&motor[index].wheel_diameter, msg);
         return;
     }
     if (msg->header.cmd == RATIO)
     {
         // set the motor power ratio (no asserv)
-        ratio_from_msg(&motor[index].target_ratio, msg);
+        ratio_from_msg((ratio_t *)&motor[index].target_ratio, msg);
         return;
     }
     if (msg->header.cmd == ANGULAR_POSITION)
@@ -353,7 +356,7 @@ void rx_mot_cb(module_t *module, msg_t *msg)
             {
                 // set the motor target angular position
                 last_position[index] = motor[index].angular_position;
-                angular_position_from_msg(&motor[index].target_angular_position, msg);
+                angular_position_from_msg((angular_position_t *)&motor[index].target_angular_position, msg);
             }
             else
             {
@@ -368,7 +371,7 @@ void rx_mot_cb(module_t *module, msg_t *msg)
         // set the motor target angular position
         if (motor[index].mode.mode_angular_speed)
         {
-            angular_speed_from_msg(&motor[index].target_angular_speed, msg);
+            angular_speed_from_msg((angular_speed_t *)&motor[index].target_angular_speed, msg);
             // reset the integral factor for speed
             errSpeedSum[index] = 0.0;
         }
@@ -406,7 +409,7 @@ void rx_mot_cb(module_t *module, msg_t *msg)
     if (msg->header.cmd == ANGULAR_POSITION_LIMIT)
     {
         // set the motor limit anglular position
-        memcpy(motor[index].limit_angular_position, msg->data, 2 * sizeof(float));
+        memcpy((void *)motor[index].limit_angular_position, msg->data, 2 * sizeof(float));
         return;
     }
     if (msg->header.cmd == LINEAR_POSITION_LIMIT)
@@ -424,7 +427,7 @@ void rx_mot_cb(module_t *module, msg_t *msg)
     if (msg->header.cmd == RATIO_LIMIT)
     {
         // set the motor power ratio limit
-        memcpy(&motor[index].limit_ratio, msg->data, sizeof(float));
+        memcpy((void *)&motor[index].limit_ratio, msg->data, sizeof(float));
         motor[index].limit_ratio = fabs(motor[index].limit_ratio);
         if (motor[index].limit_ratio > 100.0)
             motor[index].limit_ratio = 100.0;
@@ -433,13 +436,13 @@ void rx_mot_cb(module_t *module, msg_t *msg)
     if (msg->header.cmd == CURRENT_LIMIT)
     {
         // set the motor current limit
-        current_from_msg(&motor[index].limit_current, msg);
+        current_from_msg((current_t *)&motor[index].limit_current, msg);
         return;
     }
     if (msg->header.cmd == TIME)
     {
         // save time in ms
-        time_from_msg(&time, msg);
+        time_from_msg((time_luos_t *)&time, msg);
         return;
     }
 }
@@ -500,8 +503,8 @@ void controlled_motor_init(void)
 
     // default motor limits
     motor[0].limit_ratio = 100.0;
-    motor[0].limit_angular_position[MIN] = -FLT_MAX;
-    motor[0].limit_angular_position[MAX] = FLT_MAX;
+    motor[0].limit_angular_position[MINI] = -FLT_MAX;
+    motor[0].limit_angular_position[MAXI] = FLT_MAX;
     motor[0].limit_current = 6.0;
 
     // Copy default values into other motors structs
@@ -528,12 +531,12 @@ void controlled_motor_init(void)
     control[2].unmap = 0; // PLAY and no REC
 
     // Init streaming channels
-    trajectory[0] = create_streaming_channel(trajectory_buf[0], BUFFER_SIZE, sizeof(float));
-    measurement[0] = create_streaming_channel(measurement_buf[0], BUFFER_SIZE, sizeof(float));
-    trajectory[1] = create_streaming_channel(trajectory_buf[1], BUFFER_SIZE, sizeof(float));
-    measurement[1] = create_streaming_channel(measurement_buf[1], BUFFER_SIZE, sizeof(float));
-    trajectory[2] = create_streaming_channel(trajectory_buf[2], BUFFER_SIZE, sizeof(float));
-    measurement[2] = create_streaming_channel(measurement_buf[2], BUFFER_SIZE, sizeof(float));
+    trajectory[0] = create_streaming_channel((void *)trajectory_buf[0], BUFFER_SIZE, sizeof(float));
+    measurement[0] = create_streaming_channel((void *)measurement_buf[0], BUFFER_SIZE, sizeof(float));
+    trajectory[1] = create_streaming_channel((void *)trajectory_buf[1], BUFFER_SIZE, sizeof(float));
+    measurement[1] = create_streaming_channel((void *)measurement_buf[1], BUFFER_SIZE, sizeof(float));
+    trajectory[2] = create_streaming_channel((void *)trajectory_buf[2], BUFFER_SIZE, sizeof(float));
+    measurement[2] = create_streaming_channel((void *)measurement_buf[2], BUFFER_SIZE, sizeof(float));
 
     // get sensor offset reduction and resolution
     AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
@@ -638,13 +641,13 @@ void controlled_motor_loop(void)
             // linear_speed => m/seconds
             motor[i].linear_speed = (motor[i].angular_speed / 360.0) * M_PI * motor[i].wheel_diameter;
             // ************* Limit clamping *************
-            if (motion_target_position[i] < motor[i].limit_angular_position[MIN])
+            if (motion_target_position[i] < motor[i].limit_angular_position[MINI])
             {
-                motion_target_position[i] = motor[i].limit_angular_position[MIN];
+                motion_target_position[i] = motor[i].limit_angular_position[MINI];
             }
-            if (motion_target_position[i] > motor[i].limit_angular_position[MAX])
+            if (motion_target_position[i] > motor[i].limit_angular_position[MAXI])
             {
-                motion_target_position[i] = motor[i].limit_angular_position[MAX];
+                motion_target_position[i] = motor[i].limit_angular_position[MAXI];
             }
             float currentfactor = 1.0f;
             currentfactor = motor[i].limit_current / (motor[i].current * 2);
@@ -663,16 +666,16 @@ void controlled_motor_loop(void)
             if (motor[i].mode.mode_compliant)
             {
                 //Motor is compliant, only manage motor limits
-                if (motor[i].angular_position < motor[i].limit_angular_position[MIN])
+                if (motor[i].angular_position < motor[i].limit_angular_position[MINI])
                 {
                     //re-enable motor to avoid bypassing motors limits
                     enable_motor(i, 1);
-                    set_ratio(i, 100.0 * (motor[i].limit_angular_position[MIN] - motor[i].angular_position));
+                    set_ratio(i, 100.0 * (motor[i].limit_angular_position[MINI] - motor[i].angular_position));
                 }
-                else if (motor[i].angular_position > motor[i].limit_angular_position[MAX])
+                else if (motor[i].angular_position > motor[i].limit_angular_position[MAXI])
                 {
                     enable_motor(i, 1);
-                    set_ratio(i, -100.0 * (motor[i].angular_position - motor[i].limit_angular_position[MAX]));
+                    set_ratio(i, -100.0 * (motor[i].angular_position - motor[i].limit_angular_position[MAXI]));
                 }
                 else
                 {
