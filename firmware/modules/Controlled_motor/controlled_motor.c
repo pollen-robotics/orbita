@@ -555,9 +555,9 @@ void controlled_motor_init(void)
     motor[1].temperature = temperatures[1];
     motor[2].temperature = temperatures[2];
 
-    modules[0] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "disk_bottom", STRINGIFY(VERSION));
+    modules[0] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "disk_top", STRINGIFY(VERSION));
     modules[1] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "disk_middle", STRINGIFY(VERSION));
-    modules[2] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "disk_top", STRINGIFY(VERSION));
+    modules[2] = luos_module_create(rx_mot_cb, CONTROLLED_MOTOR_MOD, "disk_bottom", STRINGIFY(VERSION));
 
     // enable ABI mode on sensors
     HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_RESET);
