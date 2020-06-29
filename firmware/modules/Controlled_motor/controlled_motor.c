@@ -22,6 +22,10 @@
 #define SAMPLING_PERIOD_MS 10.0
 #define BUFFER_SIZE 1000
 
+#define TEMPERATURE_FAN_LIMIT 35
+#define TEMPERATURE_STOP_LIMIT 50
+static uint8_t temperature_error = 0;
+
 module_t *modules[3];
 
 volatile motor_config_t motor[3];
@@ -547,7 +551,7 @@ void controlled_motor_init(void)
 
     // set motors temperatures configurations
     MAX31730.SetFil(ENABLE);
-    MAX31730.SetThr(40);
+    MAX31730.SetThr(TEMPERATURE_FAN_LIMIT);
     // get motor temperatures
     temperature_t temperatures[3] = {0.0};
     MAX31730.Read((float *)temperatures);
@@ -613,6 +617,14 @@ void controlled_motor_loop(void)
         motor[0].temperature = temperatures[0];
         motor[1].temperature = temperatures[1];
         motor[2].temperature = temperatures[2];
+
+        for (int i=0; i<3; i++)
+        {
+            if (motor[i].temperature > TEMPERATURE_STOP_LIMIT) 
+            {
+                temperature_error = 1;
+            }
+        }
     }
 
     if (deltatime >= ASSERV_PERIOD)
@@ -663,7 +675,20 @@ void controlled_motor_loop(void)
                 surpCurrentSum[i] = 0.0;
                 currentfactor = 1.0f;
             }
-            if (motor[i].mode.mode_compliant)
+            if (temperature_error) 
+            {
+                enable_motor(i, 0);
+                
+                static uint32_t last_blink_systick = 0;
+                static uint8_t blink_state = 0;
+                if (((timestamp - last_blink_systick) > 500) && i == 0)
+                {
+                    last_blink_systick = timestamp;
+                    status_led(blink_state);
+                    blink_state = 1 - blink_state;
+                }
+            }
+            else if (motor[i].mode.mode_compliant)
             {
                 //Motor is compliant, only manage motor limits
                 if (motor[i].angular_position < motor[i].limit_angular_position[MINI])
