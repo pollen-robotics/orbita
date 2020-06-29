@@ -516,8 +516,8 @@ void controlled_motor_init(void)
     motor[2] = motor[0];
 
     // Position PID default values
-    position[0].p = 20.0;
-    position[0].i = 0.1;
+    position[0].p = 30.0;
+    position[0].i = 0.2;
     position[0].d = 0.0;
     position[1] = position[0];
     position[2] = position[0];
