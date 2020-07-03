@@ -49,7 +49,10 @@ static void AngRead(AbsAng_struct_t *Buffer)
         for (uint8_t i = 0; i < 18; i++)
         {
             Buffer->Raw |= SSI_SingleClockPulse_Read(AS5045B_MISO_GPIO_Port, AS5045B_MISO_Pin);
-            Buffer->Raw <<= 1;
+            if (i != 17)
+            {
+                Buffer->Raw <<=1;
+            }
         }
         SSI_SingleClockPulse_Read(AS5045B_MISO_GPIO_Port, AS5045B_MISO_Pin); // Pulse
         Buffer++;
