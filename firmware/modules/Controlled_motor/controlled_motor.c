@@ -591,13 +591,13 @@ void controlled_motor_loop(void)
     // angular_posistion => degree
     int32_t encoder_count = (int16_t)TIM2->CNT;
     TIM2->CNT = 0;
-    motor[0].angular_position += (angular_position_t)((double)encoder_count / (double)(motor[0].motor_reduction * motor[0].resolution)) * 360.0;
+    motor[0].angular_position -= (angular_position_t)((double)encoder_count / (double)(motor[0].motor_reduction * motor[0].resolution)) * 360.0;
     encoder_count = (int16_t)TIM3->CNT;
     TIM3->CNT = 0;
-    motor[1].angular_position -= (angular_position_t)((double)encoder_count / (double)(motor[1].motor_reduction * motor[1].resolution)) * 360.0;
+    motor[1].angular_position += (angular_position_t)((double)encoder_count / (double)(motor[1].motor_reduction * motor[1].resolution)) * 360.0;
     encoder_count = (int16_t)TIM4->CNT;
     TIM4->CNT = 0;
-    motor[2].angular_position -= (angular_position_t)((double)encoder_count / (double)(motor[2].motor_reduction * motor[2].resolution)) * 360.0;
+    motor[2].angular_position += (angular_position_t)((double)encoder_count / (double)(motor[2].motor_reduction * motor[2].resolution)) * 360.0;
 
     // linear_distance => m
     motor[0].linear_position = (motor[0].angular_position / 360.0) * M_PI * motor[0].wheel_diameter;
@@ -703,12 +703,12 @@ void controlled_motor_loop(void)
                 {
                     //re-enable motor to avoid bypassing motors limits
                     enable_motor(i, 1);
-                    set_ratio(i, 100.0 * (motor[i].limit_angular_position[MINI] - motor[i].angular_position));
+                    set_ratio(i, -100.0 * (motor[i].limit_angular_position[MINI] - motor[i].angular_position));
                 }
                 else if (motor[i].angular_position > motor[i].limit_angular_position[MAXI])
                 {
                     enable_motor(i, 1);
-                    set_ratio(i, -100.0 * (motor[i].angular_position - motor[i].limit_angular_position[MAXI]));
+                    set_ratio(i, 100.0 * (motor[i].angular_position - motor[i].limit_angular_position[MAXI]));
                 }
                 else
                 {
@@ -717,7 +717,7 @@ void controlled_motor_loop(void)
             }
             else if (motor[i].mode.mode_ratio)
             {
-                set_ratio(i, motor[i].target_ratio * currentfactor);
+                set_ratio(i, -motor[i].target_ratio * currentfactor);
             }
             else
             {
@@ -759,12 +759,12 @@ void controlled_motor_loop(void)
                     (motor[i].mode.mode_angular_speed || motor[i].mode.mode_linear_speed))
                 {
                     // Speed control only
-                    set_ratio(i, speedPower * currentfactor);
+                    set_ratio(i, -speedPower * currentfactor);
                 }
                 else
                 {
                     // we use position control by default
-                    set_ratio(i, anglePower * currentfactor);
+                    set_ratio(i, -anglePower * currentfactor);
                 }
             }
         }
