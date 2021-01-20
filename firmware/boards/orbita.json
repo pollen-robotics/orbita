@@ -6,7 +6,7 @@
             "-DSTM32G4xx",
             "-DSTM32G474xx",
             "-DUSE_FULL_LL_DRIVER",
-            "-DHAL=orbita ",
+            "-DLUOSHAL=STM32G4 ",
             "-DEEPROM_USE_FLASH_PAGE=2"
         ],
         "f_cpu": "170000000L",
