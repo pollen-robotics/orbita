@@ -31,7 +31,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "luos.h"
-#include "controlled_motor.h"
+#include "orbita.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -109,7 +109,7 @@ int main(void)
     HAL_GPIO_WritePin(AS5045B_MOSI_GPIO_Port, AS5045B_MOSI_Pin, GPIO_PIN_RESET);
     HAL_Delay(500);
     Luos_Init();
-    ControlledMotor_Init();
+    Orbita_Init();
 
   /* USER CODE END 2 */
 
@@ -118,7 +118,7 @@ int main(void)
     while (1)
     {
         Luos_Loop();
-        ControlledMotor_Loop();
+        Orbita_Loop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
