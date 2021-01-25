@@ -21,6 +21,7 @@ static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE};
 
 static volatile float pid[NB_MOTORS][3] = {0};
 static volatile int32_t position_errors[NB_MOTORS] = {0};
+static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
 static float temperatures[NB_MOTORS] = {0.0};
 static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE};
@@ -53,15 +54,6 @@ void Orbita_Init(void)
 
 void Orbita_Loop(void)
 {
-    static uint32_t last_pos_asserv = 0;
-    if ((HAL_GetTick() - last_pos_asserv) >= 1)
-    {
-        update_present_positions();
-        update_motor_asserv();
-
-        last_pos_asserv = HAL_GetTick();
-    }
-
     if (!is_alive())
     {
         status_led(1);
@@ -182,7 +174,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 if (torque_enable == 1)
                 {
                     target_positions[motor_id] = present_positions[motor_id];
-                    // TODO: Reset PID errors
+
+                    // Reset PID errors
+                    position_errors[motor_id] = 0;
+                    acc_position_errors[motor_id] = 0;
                 }
 
                 set_motor_state(motor_id, torque_enable);
@@ -345,11 +340,13 @@ void update_motor_asserv(void)
 
             int32_t p_err = target - present_positions[i];
             int32_t d_err = (p_err - position_errors[i]);
+            int32_t acc_err = clip(acc_position_errors[i] + p_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
-            float ratio = (float)p_err * pid[i][0] + (float)d_err * pid[i][2];
+            float ratio = (float)p_err * pid[i][0] + (float)acc_err * pid[i][1] + (float)d_err * pid[i][2];
             set_motor_ratio(i, ratio);
 
             position_errors[i] = d_err;
+            acc_position_errors[i] = acc_err;
         }
     }
 }
@@ -428,5 +425,6 @@ void status_led(uint8_t state)
 
 void HAL_SYSTICK_Motor_Callback(void)
 {
-
+    update_present_positions();
+    update_motor_asserv();
 }
