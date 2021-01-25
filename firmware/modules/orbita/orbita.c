@@ -16,6 +16,7 @@ static volatile int32_t target_positions[NB_MOTORS] = {0};
 static volatile int32_t position_limits[NB_MOTORS][2] = {0};
 
 static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
+static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE};
 
 static volatile float pid[NB_MOTORS][3] = {0};
 static volatile int32_t position_errors[NB_MOTORS] = {0};
@@ -139,6 +140,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         {
             send_data_to_gate(my_container, ORBITA_TEMPERATURE_SHUTDOWN, (uint8_t *)temperatures_shutdown, sizeof(float) * NB_MOTORS);
         }
+        else if (reg == ORBITA_MAX_TORQUE)
+        {
+            send_data_to_gate(my_container, ORBITA_MAX_TORQUE, (uint8_t *)max_torque, sizeof(float) * NB_MOTORS);
+        }
         else 
         {
             LUOS_ASSERT (0);
@@ -146,7 +151,6 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         // case ORBITA_PRESENT_SPEED:
         // case ORBITA_PRESENT_LOAD:
         // case ORBITA_MAX_SPEED:
-        // case ORBITA_MAX_TORQUE:
     }
     else if ((msg->header.cmd == REGISTER) && (msg->data[0] == MSG_TYPE_ORBITA_SET_REG))
     {
@@ -249,8 +253,23 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 memcpy((float *)position_limits + 3 * motor_id, motor_data + 1, sizeof(float) * 3);
             }
         }
+        else if (reg == ORBITA_MAX_TORQUE)
+        {
+            uint8_t payload_per_motor = (1 + sizeof(float));
+            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
+            LUOS_ASSERT (num_motors <= NB_MOTORS);
+            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
+
+            for (uint8_t i=0; i < num_motors; i++)
+            {
+                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
+                uint8_t motor_id = motor_data[0];
+                LUOS_ASSERT (motor_id < NB_MOTORS);
+
+                memcpy((float *)max_torque + motor_id, motor_data + 1, sizeof(float));
+            }
+        }
         // case ORBITA_MAX_SPEED:
-        // case ORBITA_MAX_TORQUE:
         else
         {
             LUOS_ASSERT (0);
@@ -366,13 +385,13 @@ void set_motor_ratio(uint8_t motor_index, float ratio)
 {
     LUOS_ASSERT(motor_index == 0 || motor_index == 1 || motor_index == 2);
 
-    if (ratio < -100)
+    if (ratio < -max_torque[motor_index])
     {
-        ratio = -100;
+        ratio = -max_torque[motor_index];
     }
-    else if (ratio > 100)
+    else if (ratio > max_torque[motor_index])
     {
-        ratio = 100;
+        ratio = max_torque[motor_index];
     }
 
     uint16_t pulse_1, pulse_2;
