@@ -19,14 +19,3 @@ void send_data_to_gate(container_t *src, uint8_t reg_type, uint8_t payload[], ui
 
     Luos_SendMsg(src, &msg);
 }
-
-
-void send_temperatures_to_gate(container_t *src, float temperatures[])
-{
-    send_data_to_gate(src, ORBITA_TEMPERATURE, (uint8_t *)temperatures, sizeof(float) * NB_MOTORS);
-}
-
-void send_positions_to_gate(container_t *src, int32_t positions[])
-{
-    send_data_to_gate(src, ORBITA_PRESENT_POSITION, (uint8_t *)positions, sizeof(int32_t) * NB_MOTORS);
-}

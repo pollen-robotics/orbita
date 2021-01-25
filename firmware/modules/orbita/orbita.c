@@ -11,9 +11,14 @@
 
 static uint32_t keep_alive = 0;
 
-static volatile int32_t present_positions[NB_MOTORS] = {0.0};
-static int32_t target_positions[NB_MOTORS] = {0};
-static uint8_t torques_enabled[NB_MOTORS] = {0};
+static volatile int32_t present_positions[NB_MOTORS] = {0};
+static volatile int32_t target_positions[NB_MOTORS] = {0};
+static volatile int32_t position_limits[NB_MOTORS][2] = {0};
+
+static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
+
+static volatile float pid[NB_MOTORS][3] = {0};
+static volatile int32_t position_errors[NB_MOTORS] = {0};
 
 static float temperatures[NB_MOTORS] = {0.0};
 
@@ -31,14 +36,28 @@ void Orbita_Init(void)
 
     for (uint8_t motor_index=0; motor_index < NB_MOTORS; motor_index++)
     {
+        position_limits[motor_index][0] = DEFAULT_POSITION_LOWER_LIMIT;
+        position_limits[motor_index][1] = DEFAULT_POSITION_UPPER_LIMIT;
+
+
+        pid[motor_index][0] = DEFAULT_P_GAIN;
+        pid[motor_index][1] = DEFAULT_I_GAIN;
+        pid[motor_index][2] = DEFAULT_D_GAIN;
+
         set_motor_state(motor_index, 0);
     }
 }
 
 void Orbita_Loop(void)
 {
-    update_present_positions();
-    update_motor_asserv();
+    static uint32_t last_pos_asserv = 0;
+    if ((HAL_GetTick() - last_pos_asserv) >= 1)
+    {
+        update_present_positions();
+        update_motor_asserv();
+
+        last_pos_asserv = HAL_GetTick();
+    }
 
     if (!is_alive())
     {
@@ -50,7 +69,7 @@ void Orbita_Loop(void)
     static uint32_t last_pos_published = 0;
     if ((HAL_GetTick() - last_pos_published) > POSITION_PUB_PERIOD)
     {
-        send_positions_to_gate(my_container, (int32_t *)present_positions);
+        send_data_to_gate(my_container, ORBITA_PRESENT_POSITION, (uint8_t *)present_positions, sizeof(int32_t) * NB_MOTORS);
         last_pos_published = HAL_GetTick();
     }
 
@@ -58,7 +77,7 @@ void Orbita_Loop(void)
     if ((HAL_GetTick() - last_temp_published) > TEMPERATURE_PUB_PERIOD)
     {
         read_temperatures(temperatures);
-        send_temperatures_to_gate(my_container, temperatures);
+        send_data_to_gate(my_container, ORBITA_TEMPERATURE, (uint8_t *)temperatures, sizeof(float) * NB_MOTORS);
         last_temp_published = HAL_GetTick();
     }
 }
@@ -71,7 +90,48 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
     }
     else if ((msg->header.cmd == REGISTER) && (msg->data[0] == MSG_TYPE_ORBITA_GET_REG))
     {
-        // [MSG_TYPE_ORBITA_GET_REG, ORBITA_ID, REG_TYPE]
+        // <-- [MSG_TYPE_ORBITA_GET_REG, ORBITA_ID, REG_TYPE]
+        // --> [MSG_TYPE_ORBITA_PUB_DATA, ORBITA_ID, REG_TYPE, (VAL1)+, (VAL2)+, (VAL3)+]
+
+        uint8_t orbita_id = msg->data[1];
+        LUOS_ASSERT (orbita_id == ORBITA_ID);
+
+        orbita_register_t reg = msg->data[2];
+        if (reg == ORBITA_PRESENT_POSITION || reg == ORBITA_TEMPERATURE)
+        {
+            // Just do nothing. The position/temperature will be published anyway
+        }
+        else if (reg == ORBITA_GOAL_POSITION)
+        {
+            send_data_to_gate(my_container, ORBITA_GOAL_POSITION, (uint8_t *)target_positions, sizeof(int32_t) * NB_MOTORS);
+        }
+        else if (reg == ORBITA_COMPLIANT)
+        {
+            uint8_t compliants[NB_MOTORS];
+            for (uint8_t i=0; i < NB_MOTORS; i++)
+            {
+                compliants[i] = 1 - torques_enabled[i];
+            }
+            send_data_to_gate(my_container, ORBITA_COMPLIANT, compliants, sizeof(uint8_t) * NB_MOTORS);
+        }
+        else if (reg == ORBITA_PID)
+        {
+            send_data_to_gate(my_container, ORBITA_PID, (uint8_t *)pid, sizeof(float) * NB_MOTORS * 3);
+        }
+        else if (reg == ORBITA_ANGLE_LIMIT)
+        {
+            send_data_to_gate(my_container, ORBITA_ANGLE_LIMIT, (uint8_t *)position_limits, sizeof(int32_t) * NB_MOTORS * 2);
+        }
+        else 
+        {
+            LUOS_ASSERT (0);
+        }
+
+        // case ORBITA_TEMPERATURE_LIMIT:
+        // case ORBITA_PRESENT_SPEED:
+        // case ORBITA_PRESENT_LOAD:
+        // case ORBITA_MAX_SPEED:
+        // case ORBITA_MAX_TORQUE:
     }
     else if ((msg->header.cmd == REGISTER) && (msg->data[0] == MSG_TYPE_ORBITA_SET_REG))
     {
@@ -80,6 +140,7 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         LUOS_ASSERT (orbita_id == ORBITA_ID);
 
         orbita_register_t reg = msg->data[2];
+
         if (reg == ORBITA_COMPLIANT)
         {
             uint8_t payload_per_motor = (1 + sizeof(uint8_t));
@@ -122,18 +183,37 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 uint8_t motor_id = motor_data[0];
                 LUOS_ASSERT (motor_id < NB_MOTORS);
 
-                uint32_t goal_position;
-                memcpy(&goal_position, motor_data + 1, sizeof(int32_t));
-
-                // TODO: check the limits
-
-                target_positions[motor_id] = goal_position;
+                memcpy((int32_t *)target_positions + motor_id, motor_data + 1, sizeof(int32_t));
             }
         }
-        else 
+        else if (reg == ORBITA_ANGLE_LIMIT)
         {
-            LUOS_ASSERT (0);
+            uint8_t payload_per_motor = (1 + sizeof(int32_t) * 2);
+            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
+            LUOS_ASSERT (num_motors <= NB_MOTORS);
+            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
+
+            for (uint8_t i=0; i < num_motors; i++)
+            {
+                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
+                uint8_t motor_id = motor_data[0];
+                LUOS_ASSERT (motor_id < NB_MOTORS);
+
+                memcpy((int32_t *)position_limits + 2 * motor_id, motor_data + 1, sizeof(int32_t) * 2);
+            }
         }
+        // case ORBITA_TEMPERATURE_LIMIT:
+        // case ORBITA_PRESENT_POSITION:
+        // case ORBITA_PRESENT_SPEED:
+        // case ORBITA_PRESENT_LOAD:
+        // case ORBITA_MAX_SPEED:
+        // case ORBITA_MAX_TORQUE:
+        // case ORBITA_PID:
+        // case ORBITA_TEMPERATURE:
+        // default:
+        //     LUOS_ASSERT (0);
+        //     break;
+        // }
     }
 }
 
@@ -191,7 +271,17 @@ void update_present_positions(void)
     TIM4->CNT = 0;
 }
 
-#define P_GAIN 0.5
+ #define min(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
+ #define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+
+#define clip(a, l, u) min(max(a, l), u)
 
 void update_motor_asserv(void)
 {
@@ -199,9 +289,15 @@ void update_motor_asserv(void)
     {
         if (torques_enabled[i] == 1)
         {
-            int32_t position_error = target_positions[i] - present_positions[i];
-            float ratio = (float)position_error * P_GAIN;
+            int32_t target = clip(target_positions[i], position_limits[i][0], position_limits[i][1]);
+
+            int32_t p_err = target - present_positions[i];
+            int32_t d_err = (p_err - position_errors[i]);
+
+            float ratio = (float)p_err * pid[i][0] + (float)d_err * pid[i][2];
             set_motor_ratio(i, ratio);
+
+            position_errors[i] = d_err;
         }
     }
 }
@@ -288,4 +384,5 @@ void status_led(uint8_t state)
 
 void HAL_SYSTICK_Motor_Callback(void)
 {
+
 }
