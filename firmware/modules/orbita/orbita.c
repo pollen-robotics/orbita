@@ -8,6 +8,7 @@
 #include "reachy.h"
 #include "MAX31730.h"
 #include "AS5045B.h"
+#include "utils.h"
 
 static uint32_t keep_alive = 0;
 
@@ -266,7 +267,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 uint8_t motor_id = motor_data[0];
                 LUOS_ASSERT (motor_id < NB_MOTORS);
 
-                memcpy((float *)max_torque + motor_id, motor_data + 1, sizeof(float));
+                float val;
+                memcpy(&val + motor_id, motor_data + 1, sizeof(float));
+                val = clip(val, -100, 100);
+                max_torque[motor_id] = val;
             }
         }
         // case ORBITA_MAX_SPEED:
@@ -331,18 +335,6 @@ void update_present_positions(void)
     TIM4->CNT = 0;
 }
 
- #define min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
-
- #define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
-
-#define clip(a, l, u) min(max(a, l), u)
-
 void update_motor_asserv(void)
 {
     for (uint8_t i=0; i < NB_MOTORS; i++)
@@ -384,15 +376,7 @@ void set_motor_state(uint8_t motor_index, uint8_t enable)
 void set_motor_ratio(uint8_t motor_index, float ratio)
 {
     LUOS_ASSERT(motor_index == 0 || motor_index == 1 || motor_index == 2);
-
-    if (ratio < -max_torque[motor_index])
-    {
-        ratio = -max_torque[motor_index];
-    }
-    else if (ratio > max_torque[motor_index])
-    {
-        ratio = max_torque[motor_index];
-    }
+    ratio = clip(ratio, -max_torque[motor_index], max_torque[motor_index]);
 
     uint16_t pulse_1, pulse_2;
     if (ratio > 0)
