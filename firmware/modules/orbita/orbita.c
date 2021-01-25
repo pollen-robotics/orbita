@@ -21,6 +21,7 @@ static volatile float pid[NB_MOTORS][3] = {0};
 static volatile int32_t position_errors[NB_MOTORS] = {0};
 
 static float temperatures[NB_MOTORS] = {0.0};
+static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE};
 
 container_t *my_container;
 
@@ -79,6 +80,18 @@ void Orbita_Loop(void)
         read_temperatures(temperatures);
         send_data_to_gate(my_container, ORBITA_TEMPERATURE, (uint8_t *)temperatures, sizeof(float) * NB_MOTORS);
         last_temp_published = HAL_GetTick();
+
+        for (uint8_t i=0; i < NB_MOTORS; i++)
+        {
+            if (temperatures[i] > temperatures_shutdown[i])
+            {
+                set_motor_state(0, 0);
+                set_motor_state(1, 0);
+                set_motor_state(2, 0);
+
+                LUOS_ASSERT (0);
+            }
+        }
     }
 }
 
@@ -122,12 +135,14 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         {
             send_data_to_gate(my_container, ORBITA_ANGLE_LIMIT, (uint8_t *)position_limits, sizeof(int32_t) * NB_MOTORS * 2);
         }
+        else if (reg == ORBITA_TEMPERATURE_SHUTDOWN)
+        {
+            send_data_to_gate(my_container, ORBITA_TEMPERATURE_SHUTDOWN, (uint8_t *)temperatures_shutdown, sizeof(float) * NB_MOTORS);
+        }
         else 
         {
             LUOS_ASSERT (0);
         }
-
-        // case ORBITA_TEMPERATURE_LIMIT:
         // case ORBITA_PRESENT_SPEED:
         // case ORBITA_PRESENT_LOAD:
         // case ORBITA_MAX_SPEED:
@@ -202,18 +217,44 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 memcpy((int32_t *)position_limits + 2 * motor_id, motor_data + 1, sizeof(int32_t) * 2);
             }
         }
-        // case ORBITA_TEMPERATURE_LIMIT:
-        // case ORBITA_PRESENT_POSITION:
-        // case ORBITA_PRESENT_SPEED:
-        // case ORBITA_PRESENT_LOAD:
+        else if (reg == ORBITA_TEMPERATURE_SHUTDOWN)
+        {
+            uint8_t payload_per_motor = (1 + sizeof(float));
+            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
+            LUOS_ASSERT (num_motors <= NB_MOTORS);
+            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
+
+            for (uint8_t i=0; i < num_motors; i++)
+            {
+                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
+                uint8_t motor_id = motor_data[0];
+                LUOS_ASSERT (motor_id < NB_MOTORS);
+
+                memcpy((float *)temperatures_shutdown + motor_id, motor_data + 1, sizeof(float));
+            }
+        }
+        else if (reg == ORBITA_PID)
+        {
+            uint8_t payload_per_motor = (1 + sizeof(float) * 3);
+            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
+            LUOS_ASSERT (num_motors <= NB_MOTORS);
+            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
+
+            for (uint8_t i=0; i < num_motors; i++)
+            {
+                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
+                uint8_t motor_id = motor_data[0];
+                LUOS_ASSERT (motor_id < NB_MOTORS);
+
+                memcpy((float *)position_limits + 3 * motor_id, motor_data + 1, sizeof(float) * 3);
+            }
+        }
         // case ORBITA_MAX_SPEED:
         // case ORBITA_MAX_TORQUE:
-        // case ORBITA_PID:
-        // case ORBITA_TEMPERATURE:
-        // default:
-        //     LUOS_ASSERT (0);
-        //     break;
-        // }
+        else
+        {
+            LUOS_ASSERT (0);
+        }
     }
 }
 
