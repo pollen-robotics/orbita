@@ -24,7 +24,7 @@ static volatile int32_t position_errors[NB_MOTORS] = {0};
 static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
 static float temperatures[NB_MOTORS] = {0.0};
-static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE};
+static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
 
 container_t *my_container;
 
@@ -43,13 +43,14 @@ void Orbita_Init(void)
         position_limits[motor_index][0] = DEFAULT_POSITION_LOWER_LIMIT;
         position_limits[motor_index][1] = DEFAULT_POSITION_UPPER_LIMIT;
 
-
         pid[motor_index][0] = DEFAULT_P_GAIN;
         pid[motor_index][1] = DEFAULT_I_GAIN;
         pid[motor_index][2] = DEFAULT_D_GAIN;
 
         set_motor_state(motor_index, 0);
     }
+
+    status_led (0);
 }
 
 void Orbita_Loop(void)
