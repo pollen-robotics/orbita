@@ -16,8 +16,8 @@ static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
 static volatile int32_t position_limits[NB_MOTORS][2] = {0};
 
-static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
-static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE};
+static volatile uint8_t torques_enabled[NB_MOTORS] = {0, 0, 0};
+static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE};
 
 static volatile float pid[NB_MOTORS][3] = {0};
 static volatile int32_t position_errors[NB_MOTORS] = {0};
