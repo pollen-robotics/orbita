@@ -247,7 +247,7 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 uint8_t motor_id = motor_data[0];
                 LUOS_ASSERT (motor_id < NB_MOTORS);
 
-                memcpy((float *)position_limits + 3 * motor_id, motor_data + 1, sizeof(float) * 3);
+                memcpy((float *)pid + 3 * motor_id, motor_data + 1, sizeof(float) * 3);
             }
         }
         else if (reg == ORBITA_MAX_TORQUE)
