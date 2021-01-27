@@ -16,7 +16,7 @@ static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
 static volatile int32_t position_limits[NB_MOTORS][2] = {0};
 
-static volatile uint8_t torques_enabled[NB_MOTORS] = {0, 0, 0};
+static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
 static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE};
 
 static volatile float pid[NB_MOTORS][3] = {0};
@@ -55,6 +55,13 @@ void Orbita_Init(void)
 
 void Orbita_Loop(void)
 {
+    static uint32_t last_asserv = 0;
+    if ((HAL_GetTick() - last_asserv) >= ASSERV_PERIOD)
+    {
+        update_present_positions();
+        update_motor_asserv((float)(HAL_GetTick() - last_asserv));
+    }
+
     if (!is_alive())
     {
         status_led(1);
@@ -80,10 +87,10 @@ void Orbita_Loop(void)
         {
             if (temperatures[i] > temperatures_shutdown[i])
             {
-                set_motor_state(0, 0);
-                set_motor_state(1, 0);
-                set_motor_state(2, 0);
-
+                for (uint8_t m=0; m < NB_MOTORS; m++)
+                {
+                    set_motor_state(m, 0);
+                }
                 LUOS_ASSERT (0);
             }
         }
@@ -331,7 +338,7 @@ void update_present_positions(void)
     TIM4->CNT = 0;
 }
 
-void update_motor_asserv(void)
+void update_motor_asserv(float dt)
 {
     for (uint8_t i=0; i < NB_MOTORS; i++)
     {
@@ -340,7 +347,7 @@ void update_motor_asserv(void)
             int32_t target = clip(target_positions[i], position_limits[i][0], position_limits[i][1]);
 
             int32_t p_err = target - present_positions[i];
-            int32_t d_err = (p_err - position_errors[i]);
+            int32_t d_err = (p_err - position_errors[i]) / dt;
             int32_t acc_err = clip(acc_position_errors[i] + p_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
             float ratio = (float)p_err * pid[i][0] + (float)acc_err * pid[i][1] + (float)d_err * pid[i][2];
@@ -426,6 +433,4 @@ void status_led(uint8_t state)
 
 void HAL_SYSTICK_Motor_Callback(void)
 {
-    update_present_positions();
-    update_motor_asserv();
 }

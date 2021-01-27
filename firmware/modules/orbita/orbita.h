@@ -9,6 +9,8 @@
 
 #define DEFAULT_MAX_TORQUE 100.0
 
+#define ASSERV_PERIOD 1 // in ms
+
 #define DEFAULT_P_GAIN 1.0
 #define DEFAULT_I_GAIN 0.0
 #define DEFAULT_D_GAIN 0.0
@@ -55,7 +57,7 @@ void status_led(uint8_t state);
 void setup_hardware(void);
 
 void update_present_positions(void);
-void update_motor_asserv(void);
+void update_motor_asserv(float dt);
 void set_motor_state(uint8_t motor_index, uint8_t enable);
 void set_motor_ratio(uint8_t motor_index, float ratio);
 
