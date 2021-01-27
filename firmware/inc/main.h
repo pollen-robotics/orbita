@@ -153,6 +153,8 @@ void Error_Handler(void);
 #define MOT1_nFAULT_Pin GPIO_PIN_9
 #define MOT1_nFAULT_GPIO_Port GPIOB
 #define MOT1_nFAULT_EXTI_IRQn EXTI9_5_IRQn
+#define LED_Pin GPIO_PIN_15
+#define LED_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
