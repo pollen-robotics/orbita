@@ -317,8 +317,8 @@ void setup_hardware(void)
     AS5045.ReadAngle(angles);
 
     present_positions[0] = (int32_t)angles[0].Bits.AngPos;
-    present_positions[1] = (int32_t)angles[1].Bits.AngPos;
-    present_positions[2] = (int32_t)angles[2].Bits.AngPos;
+    present_positions[1] = (int32_t)angles[2].Bits.AngPos;
+    present_positions[2] = (int32_t)angles[1].Bits.AngPos;
 
     // enable ABI mode on sensors
     HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_RESET);
@@ -330,11 +330,11 @@ void setup_hardware(void)
 
 void update_present_positions(void)
 {
-    present_positions[0] += (int16_t)TIM2->CNT;
+    present_positions[0] -= (int16_t)TIM2->CNT;
     TIM2->CNT = 0;
-    present_positions[1] -= (int16_t)TIM3->CNT;
+    present_positions[1] += (int16_t)TIM3->CNT;
     TIM3->CNT = 0;
-    present_positions[2] -= (int16_t)TIM4->CNT;
+    present_positions[2] += (int16_t)TIM4->CNT;
     TIM4->CNT = 0;
 }
 
@@ -346,8 +346,8 @@ void update_motor_asserv(float dt)
         {
             int32_t target = clip(target_positions[i], position_limits[i][0], position_limits[i][1]);
 
-            int32_t p_err = target - present_positions[i];
-            int32_t d_err = (p_err - position_errors[i]) / dt;
+            int32_t p_err = present_positions[i] - target;
+            int32_t d_err = (position_errors[i] - p_err) / dt;
             int32_t acc_err = clip(acc_position_errors[i] + p_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
             float ratio = (float)p_err * pid[i][0] + (float)acc_err * pid[i][1] + (float)d_err * pid[i][2];
