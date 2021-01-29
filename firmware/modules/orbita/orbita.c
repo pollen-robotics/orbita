@@ -12,6 +12,10 @@
 
 static uint32_t keep_alive = 0;
 
+#define ORBITA_ZERO_EEPROM_ADDR 34
+
+int32_t zero_positions[NB_MOTORS];
+
 static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
 static volatile int32_t position_limits[NB_MOTORS][2] = {0};
@@ -144,6 +148,11 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         else if (reg == ORBITA_MAX_TORQUE)
         {
             send_data_to_gate(my_container, ORBITA_MAX_TORQUE, (uint8_t *)max_torque, sizeof(float) * NB_MOTORS);
+        }
+        else if (reg == ORBITA_ZERO)
+        {
+            Orbita_FlashReadLuosMemoryInfo(ORBITA_ZERO_EEPROM_ADDR, sizeof(int32_t) * NB_MOTORS, (uint8_t *)zero_positions);
+            send_data_to_gate(my_container, ORBITA_ZERO, (uint8_t *)zero_positions, sizeof(int32_t) * NB_MOTORS);
         }
         else if (reg == ORBITA_POSITION_ABSOLUTE)
         {
@@ -288,6 +297,21 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             }
         }
         // case ORBITA_MAX_SPEED:
+        else if (reg == ORBITA_ZERO)
+        {
+            status_led (1);
+
+            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+            AS5045.ReadAngle(angles);
+
+            zero_positions[0] = (int32_t)angles[0].Bits.AngPos;
+            zero_positions[1] = (int32_t)angles[2].Bits.AngPos;
+            zero_positions[2] = (int32_t)angles[1].Bits.AngPos;
+
+            Orbita_FlashWriteLuosMemoryInfo(ORBITA_ZERO_EEPROM_ADDR, 3 * sizeof(int32_t), (uint8_t *)zero_positions);
+
+            status_led (0);
+        }
         else if (reg == ORBITA_RECALIBRATE)
         {
             AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
