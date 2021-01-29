@@ -145,6 +145,17 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         {
             send_data_to_gate(my_container, ORBITA_MAX_TORQUE, (uint8_t *)max_torque, sizeof(float) * NB_MOTORS);
         }
+        else if (reg == ORBITA_POSITION_ABSOLUTE)
+        {
+            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+            AS5045.ReadAngle(angles);
+
+            int32_t absolute_positions[NB_MOTORS];
+            absolute_positions[0] = (int32_t)angles[0].Bits.AngPos;
+            absolute_positions[1] = (int32_t)angles[2].Bits.AngPos;
+            absolute_positions[2] = (int32_t)angles[1].Bits.AngPos;
+            send_data_to_gate(my_container, ORBITA_POSITION_ABSOLUTE, (uint8_t *)absolute_positions, sizeof(int32_t) * NB_MOTORS);
+        }
         else 
         {
             LUOS_ASSERT (0);
