@@ -165,6 +165,21 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             absolute_positions[2] = (int32_t)angles[1].Bits.AngPos;
             send_data_to_gate(my_container, ORBITA_POSITION_ABSOLUTE, (uint8_t *)absolute_positions, sizeof(int32_t) * NB_MOTORS);
         }
+        else if (reg == ORBITA_MAGNETIC_QUALITY)
+        {
+            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+            AS5045.ReadAngle(angles);
+
+            uint8_t quality[NB_MOTORS][3];
+            for (uint8_t i=0; i < NB_MOTORS; i++)
+            {
+                quality[i][0] = angles[i].Bits.MagInc;
+                quality[i][1] = angles[i].Bits.MagDec;
+                quality[i][2] = angles[i].Bits.Lin;
+            }
+
+            send_data_to_gate(my_container, ORBITA_MAGNETIC_QUALITY, (uint8_t *)quality, sizeof(uint8_t) * NB_MOTORS * 3);
+        }
         else 
         {
             LUOS_ASSERT (0);
