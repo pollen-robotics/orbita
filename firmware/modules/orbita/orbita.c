@@ -288,6 +288,19 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             }
         }
         // case ORBITA_MAX_SPEED:
+        else if (reg == ORBITA_RECALIBRATE)
+        {
+            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+            AS5045.ReadAngle(angles);
+
+            present_positions[0] = (int32_t)angles[0].Bits.AngPos;
+            present_positions[1] = (int32_t)angles[2].Bits.AngPos;
+            present_positions[2] = (int32_t)angles[1].Bits.AngPos;
+
+            TIM2->CNT = 0;
+            TIM3->CNT = 0;
+            TIM4->CNT = 0;
+        }
         else
         {
             LUOS_ASSERT (0);

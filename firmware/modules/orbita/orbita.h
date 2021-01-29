@@ -46,6 +46,8 @@ typedef enum
     ORBITA_PID = 31,
     ORBITA_TEMPERATURE = 32,
 
+    ORBITA_RECALIBRATE = 41,
+
 } orbita_register_t;
 
 void Orbita_Init(void);
