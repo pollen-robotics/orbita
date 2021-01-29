@@ -425,7 +425,13 @@ void set_motor_ratio(uint8_t motor_index, float ratio)
 
 void read_temperatures(float *temperatures)
 {
-    MAX31730.Read(temperatures);
+    float temp[NB_MOTORS];
+    MAX31730.Read(temp);
+
+    temperatures[0] = temp[0];
+    temperatures[1] = temp[2];
+    temperatures[2] = temp[1];
+
 }
 
 uint8_t is_alive(void)
