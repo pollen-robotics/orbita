@@ -124,14 +124,9 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         {
             send_data_to_gate(my_container, ORBITA_GOAL_POSITION, (uint8_t *)target_positions, sizeof(int32_t) * NB_MOTORS);
         }
-        else if (reg == ORBITA_COMPLIANT)
+        else if (reg == ORBITA_TORQUE_ENABLE)
         {
-            uint8_t compliants[NB_MOTORS];
-            for (uint8_t i=0; i < NB_MOTORS; i++)
-            {
-                compliants[i] = 1 - torques_enabled[i];
-            }
-            send_data_to_gate(my_container, ORBITA_COMPLIANT, compliants, sizeof(uint8_t) * NB_MOTORS);
+            send_data_to_gate(my_container, ORBITA_TORQUE_ENABLE, (uint8_t *)torques_enabled, sizeof(uint8_t) * NB_MOTORS);
         }
         else if (reg == ORBITA_PID)
         {
@@ -196,7 +191,7 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
 
         orbita_register_t reg = msg->data[2];
 
-        if (reg == ORBITA_COMPLIANT)
+        if (reg == ORBITA_TORQUE_ENABLE)
         {
             uint8_t payload_per_motor = (1 + sizeof(uint8_t));
             uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
@@ -210,10 +205,9 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 uint8_t motor_id = motor_data[0];
                 LUOS_ASSERT (motor_id < NB_MOTORS);
 
-                uint8_t compliant = motor_data[1];
-                LUOS_ASSERT (compliant == 0 || compliant == 1);
+                uint8_t torque_enable = motor_data[1];
+                LUOS_ASSERT (torque_enable == 0 || torque_enable == 1);
 
-                uint8_t torque_enable = 1 - compliant;
                 if (torque_enable == 1)
                 {
                     target_positions[motor_id] = present_positions[motor_id];
