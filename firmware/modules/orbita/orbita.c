@@ -64,6 +64,7 @@ void Orbita_Loop(void)
     {
         update_present_positions();
         update_motor_asserv((float)(HAL_GetTick() - last_asserv));
+        last_asserv = HAL_GetTick();
     }
 
     if (!is_alive())
@@ -74,14 +75,14 @@ void Orbita_Loop(void)
     status_led(0);
 
     static uint32_t last_pos_published = 0;
-    if ((HAL_GetTick() - last_pos_published) > POSITION_PUB_PERIOD)
+    if ((HAL_GetTick() - last_pos_published) >= POSITION_PUB_PERIOD)
     {
         send_data_to_gate(my_container, ORBITA_PRESENT_POSITION, (uint8_t *)present_positions, sizeof(int32_t) * NB_MOTORS);
         last_pos_published = HAL_GetTick();
     }
 
     static uint32_t last_temp_published = 0;
-    if ((HAL_GetTick() - last_temp_published) > TEMPERATURE_PUB_PERIOD)
+    if ((HAL_GetTick() - last_temp_published) >= TEMPERATURE_PUB_PERIOD)
     {
         read_temperatures(temperatures);
         send_data_to_gate(my_container, ORBITA_TEMPERATURE, (uint8_t *)temperatures, sizeof(float) * NB_MOTORS);
