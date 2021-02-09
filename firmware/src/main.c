@@ -100,6 +100,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
+  MX_TIM6_Init();
   MX_TIM8_Init();
   MX_TIM20_Init();
   MX_USART1_UART_Init();
@@ -110,6 +111,7 @@ int main(void)
     HAL_Delay(500);
     Luos_Init();
     Orbita_Init();
+    HAL_TIM_Base_Start_IT(&htim6);
 
   /* USER CODE END 2 */
 

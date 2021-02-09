@@ -58,7 +58,7 @@ void Orbita_Init(void)
 }
 
 void Orbita_Loop(void)
-{
+{    
     static uint32_t last_asserv = 0;
     if ((HAL_GetTick() - last_asserv) >= ASSERV_PERIOD)
     {
@@ -69,10 +69,10 @@ void Orbita_Loop(void)
 
     if (!is_alive())
     {
-        status_led(1);
+        // status_led(1);
         return;
     }
-    status_led(0);
+    // status_led(0);
 
     static uint32_t last_pos_published = 0;
     if ((HAL_GetTick() - last_pos_published) >= POSITION_PUB_PERIOD)
@@ -309,8 +309,6 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         // case ORBITA_MAX_SPEED:
         else if (reg == ORBITA_ZERO)
         {
-            status_led (1);
-
             AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
             AS5045.ReadAngle(angles);
 
@@ -319,8 +317,6 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             zero_positions[2] = (int32_t)angles[1].Bits.AngPos;
 
             Orbita_FlashWriteLuosMemoryInfo(ORBITA_ZERO_EEPROM_ADDR, 3 * sizeof(int32_t), (uint8_t *)zero_positions);
-
-            status_led (0);
         }
         else if (reg == ORBITA_RECALIBRATE)
         {
@@ -495,6 +491,47 @@ void status_led(uint8_t state)
     HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, (state == 0));
 }
 
-void HAL_SYSTICK_Motor_Callback(void)
+volatile int32_t pos[10][3];
+volatile uint8_t pos_i = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+    // status_led (1);
+
+    // pos[pos_i][0] = (int16_t)TIM2->CNT;
+    // pos[pos_i][1] = (int16_t)TIM3->CNT;
+    // pos[pos_i][2] = (int16_t)TIM4->CNT;
+
+    // pos_i++;
+
+    // if (pos_i == 10)
+    // {
+    //     for (uint8_t i=0; i < 3; i++)
+    //     {
+    //         int32_t p = 0;
+    //         for (uint8_t j = 0; j < 10; j++)
+    //         {
+    //             p += pos[j][i];
+    //         }
+    //         p /= 10;
+
+    //         if (i == 0)
+    //         {
+    //             present_positions[i] -= p;
+    //         }
+    //         else 
+    //         {
+    //             present_positions[i] += p;
+    //         }
+    //     }
+    //     pos_i = 0;
+
+    //     TIM2->CNT = 0;
+    //     TIM3->CNT = 0;
+    //     TIM4->CNT = 0;
+
+    //     update_motor_asserv(1);
+    // }
+
+    // status_led (0);
 }
