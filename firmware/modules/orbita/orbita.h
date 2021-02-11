@@ -62,7 +62,6 @@ void status_led(uint8_t state);
 void setup_hardware(void);
 
 void update_present_positions(void);
-void update_motor_asserv(float dt);
 void set_motor_state(uint8_t motor_index, uint8_t enable);
 void set_motor_ratio(uint8_t motor_index, float ratio);
 

@@ -59,20 +59,12 @@ void Orbita_Init(void)
 
 void Orbita_Loop(void)
 {    
-    static uint32_t last_asserv = 0;
-    if ((HAL_GetTick() - last_asserv) >= ASSERV_PERIOD)
-    {
-        update_present_positions();
-        update_motor_asserv((float)(HAL_GetTick() - last_asserv));
-        last_asserv = HAL_GetTick();
-    }
-
     if (!is_alive())
     {
-        // status_led(1);
+        status_led(1);
         return;
     }
-    // status_led(0);
+    status_led(0);
 
     static uint32_t last_pos_published = 0;
     if ((HAL_GetTick() - last_pos_published) >= POSITION_PUB_PERIOD)
@@ -382,17 +374,7 @@ void setup_hardware(void)
     MAX31730.SetThr(TEMPERATURE_FAN_TRIGGER_THRESHOLD);
 }
 
-void update_present_positions(void)
-{
-    present_positions[0] -= (int16_t)TIM2->CNT;
-    TIM2->CNT = 0;
-    present_positions[1] += (int16_t)TIM3->CNT;
-    TIM3->CNT = 0;
-    present_positions[2] += (int16_t)TIM4->CNT;
-    TIM4->CNT = 0;
-}
-
-void update_motor_asserv(float dt)
+void update_motor_asserv()
 {
     for (uint8_t i=0; i < NB_MOTORS; i++)
     {
@@ -401,7 +383,7 @@ void update_motor_asserv(float dt)
             int32_t target = clip(target_positions[i], position_limits[i][0], position_limits[i][1]);
 
             int32_t p_err = present_positions[i] - target;
-            int32_t d_err = (position_errors[i] - p_err) / dt;
+            int32_t d_err = position_errors[i] - p_err;
             int32_t acc_err = clip(acc_position_errors[i] + p_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
             float ratio = (float)p_err * pid[i][0] + (float)acc_err * pid[i][1] + (float)d_err * pid[i][2];
@@ -494,44 +476,44 @@ void status_led(uint8_t state)
 volatile int32_t pos[10][3];
 volatile uint8_t pos_i = 0;
 
+#define INTEGRATION_LENGTH 10
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-    // status_led (1);
+    // This will be called every 100µs
 
-    // pos[pos_i][0] = (int16_t)TIM2->CNT;
-    // pos[pos_i][1] = (int16_t)TIM3->CNT;
-    // pos[pos_i][2] = (int16_t)TIM4->CNT;
+    pos[pos_i][0] = (int16_t)TIM2->CNT;
+    pos[pos_i][1] = (int16_t)TIM3->CNT;
+    pos[pos_i][2] = (int16_t)TIM4->CNT;
 
-    // pos_i++;
+    pos_i++;
 
-    // if (pos_i == 10)
-    // {
-    //     for (uint8_t i=0; i < 3; i++)
-    //     {
-    //         int32_t p = 0;
-    //         for (uint8_t j = 0; j < 10; j++)
-    //         {
-    //             p += pos[j][i];
-    //         }
-    //         p /= 10;
+    if (pos_i == INTEGRATION_LENGTH)
+    {
+        for (uint8_t i=0; i < NB_MOTORS; i++)
+        {
+            int32_t p = 0;
+            for (uint8_t j = 0; j < INTEGRATION_LENGTH; j++)
+            {
+                p += pos[j][i];
+            }
+            p /= INTEGRATION_LENGTH;
 
-    //         if (i == 0)
-    //         {
-    //             present_positions[i] -= p;
-    //         }
-    //         else 
-    //         {
-    //             present_positions[i] += p;
-    //         }
-    //     }
-    //     pos_i = 0;
+            if (i == 0)
+            {
+                present_positions[i] -= p;
+            }
+            else 
+            {
+                present_positions[i] += p;
+            }
+        }
+        pos_i = 0;
 
-    //     TIM2->CNT = 0;
-    //     TIM3->CNT = 0;
-    //     TIM4->CNT = 0;
+        TIM2->CNT = 0;
+        TIM3->CNT = 0;
+        TIM4->CNT = 0;
 
-    //     update_motor_asserv(1);
-    // }
-
-    // status_led (0);
+        update_motor_asserv();
+    }
 }
