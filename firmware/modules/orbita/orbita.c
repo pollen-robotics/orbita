@@ -30,6 +30,8 @@ static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 static float temperatures[NB_MOTORS] = {0.0};
 static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
 
+static uint8_t position_pub_period = DEFAULT_POSITION_PUB_PERIOD;
+
 container_t *my_container;
 
 
@@ -75,7 +77,7 @@ void Orbita_Loop(void)
     status_led(0);
 
     static uint32_t last_pos_published = 0;
-    if ((HAL_GetTick() - last_pos_published) >= POSITION_PUB_PERIOD)
+    if ((HAL_GetTick() - last_pos_published) >= position_pub_period)
     {
         send_data_to_gate(my_container, ORBITA_PRESENT_POSITION, (uint8_t *)present_positions, sizeof(int32_t) * NB_MOTORS);
         last_pos_published = HAL_GetTick();
@@ -175,6 +177,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             }
 
             send_data_to_gate(my_container, ORBITA_MAGNETIC_QUALITY, (uint8_t *)quality, sizeof(uint8_t) * NB_MOTORS * 3);
+        }
+        else if (reg == ORBITA_POSITION_PUB_PERIOD)
+        {
+            send_data_to_gate(my_container, ORBITA_POSITION_PUB_PERIOD, (uint8_t *)&position_pub_period, sizeof(position_pub_period));
         }
         else 
         {
@@ -334,6 +340,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             TIM2->CNT = 0;
             TIM3->CNT = 0;
             TIM4->CNT = 0;
+        }
+        else if (reg == ORBITA_POSITION_PUB_PERIOD)
+        {
+            position_pub_period = msg->data[4];
         }
         else
         {
