@@ -99,7 +99,6 @@ void Orbita_Loop(void)
                 {
                     set_motor_state(m, 0);
                 }
-                LUOS_ASSERT (0);
             }
         }
     }
