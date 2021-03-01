@@ -31,6 +31,7 @@ static float temperatures[NB_MOTORS] = {0.0};
 static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
 
 static uint8_t position_pub_period = DEFAULT_POSITION_PUB_PERIOD;
+static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
 
 container_t *my_container;
 
@@ -181,6 +182,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         else if (reg == ORBITA_POSITION_PUB_PERIOD)
         {
             send_data_to_gate(my_container, ORBITA_POSITION_PUB_PERIOD, (uint8_t *)&position_pub_period, sizeof(position_pub_period));
+        }
+        else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
+        {
+            send_data_to_gate(my_container, ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD, (uint8_t *)&temperature_fan_trigger_threshold, sizeof(temperature_fan_trigger_threshold));
         }
         else 
         {
@@ -345,6 +350,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         {
             position_pub_period = msg->data[4];
         }
+        else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
+        {
+            memcpy(&temperature_fan_trigger_threshold, msg->data + 4, sizeof(float));
+        }
         else
         {
             LUOS_ASSERT (0);
@@ -393,7 +402,7 @@ void setup_hardware(void)
 
     // set motors temperatures configurations
     MAX31730.SetFil(ENABLE);
-    MAX31730.SetThr(TEMPERATURE_FAN_TRIGGER_THRESHOLD);
+    MAX31730.SetThr(temperature_fan_trigger_threshold);
 }
 
 void update_present_positions(void)
