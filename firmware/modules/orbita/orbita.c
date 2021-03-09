@@ -180,18 +180,30 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         }
         else if (reg == ORBITA_POSITION_PUB_PERIOD)
         {
-            send_data_to_gate(my_container, ORBITA_POSITION_PUB_PERIOD, (uint8_t *)&position_pub_period, sizeof(position_pub_period));
+            uint8_t tmp[NB_MOTORS];
+            for (uint8_t i=0; i < NB_MOTORS; i++)
+            {
+                tmp[i] = position_pub_period;
+            }
+            send_data_to_gate(my_container, ORBITA_POSITION_PUB_PERIOD, (uint8_t *)tmp, sizeof(position_pub_period) * NB_MOTORS);
         }
         else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
         {
-            send_data_to_gate(my_container, ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD, (uint8_t *)&temperature_fan_trigger_threshold, sizeof(temperature_fan_trigger_threshold));
+            float tmp[NB_MOTORS];
+            for (uint8_t i=0; i < NB_MOTORS; i++)
+            {
+                tmp[i] = temperature_fan_trigger_threshold;
+            }
+
+            send_data_to_gate(my_container, ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD,
+                              (uint8_t *)tmp, sizeof(temperature_fan_trigger_threshold) * NB_MOTORS);
         }
         else if (reg == ORBITA_FAN_STATE)
         {
             uint8_t fan_status[NB_MOTORS];
             for (uint8_t i = 0; i < NB_MOTORS; i++)
             {
-                fan_status[i] = MAX31730.Status();
+                fan_status[i] = MAX31730.ThrStat();
             }
             send_data_to_gate(my_container, ORBITA_FAN_STATE, (uint8_t *)fan_status, sizeof(uint8_t) * NB_MOTORS);
         }
@@ -361,6 +373,7 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
         else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
         {
             memcpy(&temperature_fan_trigger_threshold, msg->data + 4, sizeof(float));
+            MAX31730.SetThr(temperature_fan_trigger_threshold);
         }
         else if (reg == ORBITA_FAN_STATE)
         {
