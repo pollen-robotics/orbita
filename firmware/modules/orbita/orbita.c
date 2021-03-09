@@ -30,6 +30,9 @@ static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 static float temperatures[NB_MOTORS] = {0.0};
 static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
 
+static uint8_t position_pub_period = DEFAULT_POSITION_PUB_PERIOD;
+static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
+
 container_t *my_container;
 
 
@@ -75,7 +78,7 @@ void Orbita_Loop(void)
     status_led(0);
 
     static uint32_t last_pos_published = 0;
-    if ((HAL_GetTick() - last_pos_published) >= POSITION_PUB_PERIOD)
+    if ((HAL_GetTick() - last_pos_published) >= position_pub_period)
     {
         send_data_to_gate(my_container, ORBITA_PRESENT_POSITION, (uint8_t *)present_positions, sizeof(int32_t) * NB_MOTORS);
         last_pos_published = HAL_GetTick();
@@ -96,7 +99,6 @@ void Orbita_Loop(void)
                 {
                     set_motor_state(m, 0);
                 }
-                LUOS_ASSERT (0);
             }
         }
     }
@@ -176,14 +178,34 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
 
             send_data_to_gate(my_container, ORBITA_MAGNETIC_QUALITY, (uint8_t *)quality, sizeof(uint8_t) * NB_MOTORS * 3);
         }
+        else if (reg == ORBITA_POSITION_PUB_PERIOD)
+        {
+            uint8_t tmp[NB_MOTORS];
+            for (uint8_t i=0; i < NB_MOTORS; i++)
+            {
+                tmp[i] = position_pub_period;
+            }
+            send_data_to_gate(my_container, ORBITA_POSITION_PUB_PERIOD, (uint8_t *)tmp, sizeof(position_pub_period) * NB_MOTORS);
+        }
+        else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
+        {
+            float tmp[NB_MOTORS];
+            for (uint8_t i=0; i < NB_MOTORS; i++)
+            {
+                tmp[i] = temperature_fan_trigger_threshold;
+            }
+
+            send_data_to_gate(my_container, ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD,
+                              (uint8_t *)tmp, sizeof(temperature_fan_trigger_threshold) * NB_MOTORS);
+        }
         else if (reg == ORBITA_FAN_STATE)
         {
             uint8_t fan_status[NB_MOTORS];
             for (uint8_t i = 0; i < NB_MOTORS; i++)
             {
-                fan_status[i] = MAX31730.Status();
+                fan_status[i] = MAX31730.ThrStat();
             }
-            send_data_to_gate(my_container, ORBITA_FAN_STATE, &fan_status, sizeof(uint8_t) * NB_MOTORS);
+            send_data_to_gate(my_container, ORBITA_FAN_STATE, (uint8_t *)fan_status, sizeof(uint8_t) * NB_MOTORS);
         }
         else 
         {
@@ -344,6 +366,15 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             TIM3->CNT = 0;
             TIM4->CNT = 0;
         }
+        else if (reg == ORBITA_POSITION_PUB_PERIOD)
+        {
+            position_pub_period = msg->data[4];
+        }
+        else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
+        {
+            memcpy(&temperature_fan_trigger_threshold, msg->data + 4, sizeof(float));
+            MAX31730.SetThr(temperature_fan_trigger_threshold);
+        }
         else if (reg == ORBITA_FAN_STATE)
         {
             // TODO: can we manually trigger the fan?
@@ -396,7 +427,7 @@ void setup_hardware(void)
 
     // set motors temperatures configurations
     MAX31730.SetFil(ENABLE);
-    MAX31730.SetThr(TEMPERATURE_FAN_TRIGGER_THRESHOLD);
+    MAX31730.SetThr(temperature_fan_trigger_threshold);
 }
 
 void update_present_positions(void)
