@@ -268,6 +268,9 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                 LUOS_ASSERT (motor_id < NB_MOTORS);
 
                 memcpy((int32_t *)target_positions + motor_id, motor_data + 1, sizeof(int32_t));
+
+                position_errors[i] = 0;
+                acc_position_errors[i] = 0;
             }
         }
         else if (reg == ORBITA_ANGLE_LIMIT)
@@ -448,15 +451,15 @@ void update_motor_asserv(float dt)
         {
             int32_t target = clip(target_positions[i], position_limits[i][0], position_limits[i][1]);
 
-            int32_t p_err = present_positions[i] - target;
-            int32_t d_err = (position_errors[i] - p_err) / dt;
-            int32_t acc_err = clip(acc_position_errors[i] + p_err, -MAX_ACC_ERR, MAX_ACC_ERR);
+            int32_t pos_err = present_positions[i] - target;
+            int32_t d_pos_err = (pos_err - position_errors[i]) / dt;
+            int32_t i_err = clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
-            float ratio = (float)p_err * pid[i][0] + (float)acc_err * pid[i][1] + (float)d_err * pid[i][2];
+            float ratio = (float)pos_err * pid[i][0] + (float)i_err * pid[i][1] + (float)d_pos_err * pid[i][2];
             set_motor_ratio(i, ratio);
 
-            position_errors[i] = d_err;
-            acc_position_errors[i] = acc_err;
+            position_errors[i] = d_pos_err;
+            acc_position_errors[i] = i_err;
         }
     }
 }
