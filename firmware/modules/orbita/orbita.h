@@ -50,6 +50,8 @@ typedef enum
     ORBITA_RECALIBRATE = 41,
     ORBITA_MAGNETIC_QUALITY = 42,
 
+    ORBITA_FAN_STATE = 50,
+
 } orbita_register_t;
 
 void Orbita_Init(void);

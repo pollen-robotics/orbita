@@ -176,6 +176,15 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
 
             send_data_to_gate(my_container, ORBITA_MAGNETIC_QUALITY, (uint8_t *)quality, sizeof(uint8_t) * NB_MOTORS * 3);
         }
+        else if (reg == ORBITA_FAN_STATE)
+        {
+            uint8_t fan_status[NB_MOTORS];
+            for (uint8_t i = 0; i < NB_MOTORS; i++)
+            {
+                fan_status[i] = MAX31730.Status();
+            }
+            send_data_to_gate(my_container, ORBITA_FAN_STATE, &fan_status, sizeof(uint8_t) * NB_MOTORS);
+        }
         else 
         {
             LUOS_ASSERT (0);
@@ -334,6 +343,10 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
             TIM2->CNT = 0;
             TIM3->CNT = 0;
             TIM4->CNT = 0;
+        }
+        else if (reg == ORBITA_FAN_STATE)
+        {
+            // TODO: can we manually trigger the fan?
         }
         else
         {
