@@ -3,7 +3,7 @@
 
 #include "luos.h"
 
-#define ORBITA_ID 10
+#define ORBITA_ID 40
 
 #define NB_MOTORS 3
 
