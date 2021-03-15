@@ -24,7 +24,7 @@ static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
 static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE};
 
 static volatile float pid[NB_MOTORS][3] = {0};
-static volatile int32_t position_errors[NB_MOTORS] = {0};
+static volatile int32_t d_position_errors[NB_MOTORS] = {0};
 static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
 static float temperatures[NB_MOTORS] = {0.0};
@@ -245,7 +245,7 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
                     target_positions[motor_id] = present_positions[motor_id];
 
                     // Reset PID errors
-                    position_errors[motor_id] = 0;
+                    d_position_errors[motor_id] = 0;
                     acc_position_errors[motor_id] = 0;
                 }
 
@@ -269,7 +269,7 @@ void Orbita_MsgHandler(container_t *src, msg_t *msg)
 
                 memcpy((int32_t *)target_positions + motor_id, motor_data + 1, sizeof(int32_t));
 
-                position_errors[i] = 0;
+                d_position_errors[i] = 0;
                 acc_position_errors[i] = 0;
             }
         }
@@ -452,13 +452,13 @@ void update_motor_asserv(float dt)
             int32_t target = clip(target_positions[i], position_limits[i][0], position_limits[i][1]);
 
             int32_t pos_err = present_positions[i] - target;
-            int32_t d_pos_err = (pos_err - position_errors[i]) / dt;
+            int32_t d_pos_err = (pos_err - d_position_errors[i]) / dt;
             int32_t i_err = clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
             float ratio = (float)pos_err * pid[i][0] + (float)i_err * pid[i][1] + (float)d_pos_err * pid[i][2];
             set_motor_ratio(i, ratio);
 
-            position_errors[i] = d_pos_err;
+            d_position_errors[i] = d_pos_err;
             acc_position_errors[i] = i_err;
         }
     }
