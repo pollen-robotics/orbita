@@ -11,8 +11,8 @@
 
 #define ASSERV_PERIOD 1 // in ms
 
-#define DEFAULT_P_GAIN 2.0
-#define DEFAULT_I_GAIN 0.01
+#define DEFAULT_P_GAIN 1.0
+#define DEFAULT_I_GAIN 0.0
 #define DEFAULT_D_GAIN 0.0
 
 #define MAX_ACC_ERR 65535
