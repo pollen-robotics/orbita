@@ -69,6 +69,15 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define RS485_RE_Pin GPIO_PIN_14
+#define RS485_RE_GPIO_Port GPIOB
+#define RS485_DE_Pin GPIO_PIN_15
+#define RS485_DE_GPIO_Port GPIOB
+#define RS485_TX_Pin GPIO_PIN_9
+#define RS485_TX_GPIO_Port GPIOA
+#define RS485_RX_Pin GPIO_PIN_10
+#define RS485_RX_GPIO_Port GPIOA
+
 #define MOT1_EN_Pin GPIO_PIN_13
 #define MOT1_EN_GPIO_Port GPIOC
 #define MOT1_PMODE_Pin GPIO_PIN_14
@@ -108,28 +117,28 @@ void Error_Handler(void);
 #define ROBUS_VOLTAGE_GPIO_Port GPIOB
 #define MOT3_IN1_Pin GPIO_PIN_2
 #define MOT3_IN1_GPIO_Port GPIOB
-#define RS485_LVL_DOWN_Pin GPIO_PIN_11
-#define RS485_LVL_DOWN_GPIO_Port GPIOB
-#define RS485_LVL_UP_Pin GPIO_PIN_12
-#define RS485_LVL_UP_GPIO_Port GPIOB
-#define ROBUS_PTPB_Pin GPIO_PIN_13
-#define ROBUS_PTPB_GPIO_Port GPIOB
-#define ROBUS_PTPB_EXTI_IRQn EXTI15_10_IRQn
-#define ROBUS_RE_Pin GPIO_PIN_14
-#define ROBUS_RE_GPIO_Port GPIOB
-#define ROBUS_DE_Pin GPIO_PIN_15
-#define ROBUS_DE_GPIO_Port GPIOB
+// #define RS485_LVL_DOWN_Pin GPIO_PIN_11
+// #define RS485_LVL_DOWN_GPIO_Port GPIOB
+// #define RS485_LVL_UP_Pin GPIO_PIN_12
+// #define RS485_LVL_UP_GPIO_Port GPIOB
+// #define ROBUS_PTPB_Pin GPIO_PIN_13
+// #define ROBUS_PTPB_GPIO_Port GPIOB
+// #define ROBUS_PTPB_EXTI_IRQn EXTI15_10_IRQn
+// #define ROBUS_RE_Pin GPIO_PIN_14
+// #define ROBUS_RE_GPIO_Port GPIOB
+// #define ROBUS_DE_Pin GPIO_PIN_15
+// #define ROBUS_DE_GPIO_Port GPIOB
 #define MOT2_IN1_Pin GPIO_PIN_6
 #define MOT2_IN1_GPIO_Port GPIOC
 #define MOT2_IN2_Pin GPIO_PIN_7
 #define MOT2_IN2_GPIO_Port GPIOC
-#define ROBUS_PTPA_Pin GPIO_PIN_8
-#define ROBUS_PTPA_GPIO_Port GPIOA
-#define ROBUS_PTPA_EXTI_IRQn EXTI9_5_IRQn
-#define ROBUS_USART1_TX_Pin GPIO_PIN_9
-#define ROBUS_USART1_TX_GPIO_Port GPIOA
-#define ROBUS_USART1_RX_Pin GPIO_PIN_10
-#define ROBUS_USART1_RX_GPIO_Port GPIOA
+// #define ROBUS_PTPA_Pin GPIO_PIN_8
+// #define ROBUS_PTPA_GPIO_Port GPIOA
+// #define ROBUS_PTPA_EXTI_IRQn EXTI9_5_IRQn
+// #define ROBUS_USART1_TX_Pin GPIO_PIN_9
+// #define ROBUS_USART1_TX_GPIO_Port GPIOA
+// #define ROBUS_USART1_RX_Pin GPIO_PIN_10
+// #define ROBUS_USART1_RX_GPIO_Port GPIOA
 #define AS5045B_SS_Pin GPIO_PIN_15
 #define AS5045B_SS_GPIO_Port GPIOA
 #define AS5045B_SCK_Pin GPIO_PIN_10

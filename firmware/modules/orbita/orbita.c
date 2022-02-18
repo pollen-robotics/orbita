@@ -1,14 +1,12 @@
 #include "orbita.h"
 
-#include "pub.h"
 #include "tim.h"
 #include "main.h"
-#include "luos.h"
 #include "stdio.h"
-#include "reachy.h"
 #include "MAX31730.h"
 #include "AS5045B.h"
 #include "utils.h"
+#include "usart.h"
 
 static uint32_t keep_alive = 0;
 
@@ -33,17 +31,10 @@ static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, D
 static uint8_t position_pub_period = DEFAULT_POSITION_PUB_PERIOD;
 static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
 
-container_t *my_container;
-
 
 void Orbita_Init(void)
 {
     setup_hardware();
-
-    char alias[15];
-    sprintf(alias, "orbita_%d", ORBITA_ID);
-    revision_t revision = {.unmap = REV};
-    my_container = Luos_CreateContainer(Orbita_MsgHandler, CONTROLLER_MOTOR_MOD, alias, revision);
 
     for (uint8_t motor_index=0; motor_index < NB_MOTORS; motor_index++)
     {
@@ -57,324 +48,39 @@ void Orbita_Init(void)
         set_motor_state(motor_index, 0);
     }
 
-    status_led (0);
+    status_led(1);
 }
+
+#define SEND_BUFF_SIZE 10
+#define RECV_BUFF_SIZE 2
+
+uint8_t send_buff[SEND_BUFF_SIZE];
+uint8_t recv_buff[RECV_BUFF_SIZE];
+
 
 void Orbita_Loop(void)
 {    
-    if (!is_alive())
-    {
+	// PASSER EN RX
+	HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(RS485_DE_GPIO_Port, RS485_DE_Pin, GPIO_PIN_RESET);
+
+	HAL_StatusTypeDef ret = HAL_UART_Receive(&huart1, recv_buff, RECV_BUFF_SIZE, 1000);
+
+    if (ret == HAL_TIMEOUT) {
         status_led(1);
-        return;
-    }
-    status_led(0);
-
-    static uint32_t last_pos_published = 0;
-    if ((HAL_GetTick() - last_pos_published) >= position_pub_period)
-    {
-        send_data_to_gate(my_container, ORBITA_PRESENT_POSITION, (uint8_t *)present_positions, sizeof(int32_t) * NB_MOTORS);
-        last_pos_published = HAL_GetTick();
     }
 
-    static uint32_t last_temp_published = 0;
-    if ((HAL_GetTick() - last_temp_published) >= TEMPERATURE_PUB_PERIOD)
-    {
-        read_temperatures(temperatures);
-        send_data_to_gate(my_container, ORBITA_TEMPERATURE, (uint8_t *)temperatures, sizeof(float) * NB_MOTORS);
-        last_temp_published = HAL_GetTick();
+	if (ret == HAL_OK) {
+        status_led(0);
 
-        for (uint8_t i=0; i < NB_MOTORS; i++)
-        {
-            if (temperatures[i] > temperatures_shutdown[i])
-            {
-                for (uint8_t m=0; m < NB_MOTORS; m++)
-                {
-                    set_motor_state(m, 0);
-                }
-            }
-        }
-    }
-}
+		// PASSER EN TX
+		HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(RS485_DE_GPIO_Port, RS485_DE_Pin, GPIO_PIN_SET);
 
-void Orbita_MsgHandler(container_t *src, msg_t *msg)
-{
-    if ((msg->header.cmd == REGISTER) && (msg->data[0] == MSG_TYPE_KEEP_ALIVE))
-    {
-        keep_alive = HAL_GetTick();
-    }
-    else if ((msg->header.cmd == REGISTER) && (msg->data[0] == MSG_TYPE_ORBITA_GET_REG))
-    {
-        // <-- [MSG_TYPE_ORBITA_GET_REG, ORBITA_ID, REG_TYPE]
-        // --> [MSG_TYPE_ORBITA_PUB_DATA, ORBITA_ID, REG_TYPE, (VAL1)+, (VAL2)+, (VAL3)+]
+		HAL_Delay(1);
 
-        uint8_t orbita_id = msg->data[1];
-        LUOS_ASSERT (orbita_id == ORBITA_ID);
-
-        orbita_register_t reg = msg->data[2];
-        if (reg == ORBITA_PRESENT_POSITION || reg == ORBITA_TEMPERATURE)
-        {
-            // Just do nothing. The position/temperature will be published anyway
-        }
-        else if (reg == ORBITA_GOAL_POSITION)
-        {
-            send_data_to_gate(my_container, ORBITA_GOAL_POSITION, (uint8_t *)target_positions, sizeof(int32_t) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_TORQUE_ENABLE)
-        {
-            send_data_to_gate(my_container, ORBITA_TORQUE_ENABLE, (uint8_t *)torques_enabled, sizeof(uint8_t) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_PID)
-        {
-            send_data_to_gate(my_container, ORBITA_PID, (uint8_t *)pid, sizeof(float) * NB_MOTORS * 3);
-        }
-        else if (reg == ORBITA_ANGLE_LIMIT)
-        {
-            send_data_to_gate(my_container, ORBITA_ANGLE_LIMIT, (uint8_t *)position_limits, sizeof(int32_t) * NB_MOTORS * 2);
-        }
-        else if (reg == ORBITA_TEMPERATURE_SHUTDOWN)
-        {
-            send_data_to_gate(my_container, ORBITA_TEMPERATURE_SHUTDOWN, (uint8_t *)temperatures_shutdown, sizeof(float) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_MAX_TORQUE)
-        {
-            send_data_to_gate(my_container, ORBITA_MAX_TORQUE, (uint8_t *)max_torque, sizeof(float) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_ZERO)
-        {
-            Orbita_FlashReadLuosMemoryInfo(ORBITA_ZERO_EEPROM_ADDR, sizeof(int32_t) * NB_MOTORS, (uint8_t *)zero_positions);
-            send_data_to_gate(my_container, ORBITA_ZERO, (uint8_t *)zero_positions, sizeof(int32_t) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_POSITION_ABSOLUTE)
-        {
-            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
-            AS5045.ReadAngle(angles);
-
-            int32_t absolute_positions[NB_MOTORS];
-            absolute_positions[0] = (int32_t)angles[0].Bits.AngPos;
-            absolute_positions[1] = (int32_t)angles[2].Bits.AngPos;
-            absolute_positions[2] = (int32_t)angles[1].Bits.AngPos;
-            send_data_to_gate(my_container, ORBITA_POSITION_ABSOLUTE, (uint8_t *)absolute_positions, sizeof(int32_t) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_MAGNETIC_QUALITY)
-        {
-            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
-            AS5045.ReadAngle(angles);
-
-            uint8_t quality[NB_MOTORS][3];
-            for (uint8_t i=0; i < NB_MOTORS; i++)
-            {
-                quality[i][0] = angles[i].Bits.MagInc;
-                quality[i][1] = angles[i].Bits.MagDec;
-                quality[i][2] = angles[i].Bits.Lin;
-            }
-
-            send_data_to_gate(my_container, ORBITA_MAGNETIC_QUALITY, (uint8_t *)quality, sizeof(uint8_t) * NB_MOTORS * 3);
-        }
-        else if (reg == ORBITA_POSITION_PUB_PERIOD)
-        {
-            uint8_t tmp[NB_MOTORS];
-            for (uint8_t i=0; i < NB_MOTORS; i++)
-            {
-                tmp[i] = position_pub_period;
-            }
-            send_data_to_gate(my_container, ORBITA_POSITION_PUB_PERIOD, (uint8_t *)tmp, sizeof(position_pub_period) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
-        {
-            float tmp[NB_MOTORS];
-            for (uint8_t i=0; i < NB_MOTORS; i++)
-            {
-                tmp[i] = temperature_fan_trigger_threshold;
-            }
-
-            send_data_to_gate(my_container, ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD,
-                              (uint8_t *)tmp, sizeof(temperature_fan_trigger_threshold) * NB_MOTORS);
-        }
-        else if (reg == ORBITA_FAN_STATE)
-        {
-            uint8_t fan_status[NB_MOTORS];
-            for (uint8_t i = 0; i < NB_MOTORS; i++)
-            {
-                fan_status[i] = MAX31730.ThrStat();
-            }
-            send_data_to_gate(my_container, ORBITA_FAN_STATE, (uint8_t *)fan_status, sizeof(uint8_t) * NB_MOTORS);
-        }
-        else 
-        {
-            LUOS_ASSERT (0);
-        }
-        // case ORBITA_PRESENT_SPEED:
-        // case ORBITA_PRESENT_LOAD:
-        // case ORBITA_MAX_SPEED:
-    }
-    else if ((msg->header.cmd == REGISTER) && (msg->data[0] == MSG_TYPE_ORBITA_SET_REG))
-    {
-        // [MSG_TYPE_ORBITA_SET_REG, ORBITA_ID, REG_TYPE, (MOTOR_ID, (VAL+))+]
-        uint8_t orbita_id = msg->data[1];
-        LUOS_ASSERT (orbita_id == ORBITA_ID);
-
-        orbita_register_t reg = msg->data[2];
-
-        if (reg == ORBITA_TORQUE_ENABLE)
-        {
-            uint8_t payload_per_motor = (1 + sizeof(uint8_t));
-            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
-            LUOS_ASSERT (num_motors <= NB_MOTORS);
-            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
-
-            for (uint8_t i=0; i < num_motors; i++)
-            {
-                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
-
-                uint8_t motor_id = motor_data[0];
-                LUOS_ASSERT (motor_id < NB_MOTORS);
-
-                uint8_t torque_enable = motor_data[1];
-                LUOS_ASSERT (torque_enable == 0 || torque_enable == 1);
-
-                if (torque_enable == 1)
-                {
-                    target_positions[motor_id] = present_positions[motor_id];
-
-                    // Reset PID errors
-                    d_position_errors[motor_id] = 0;
-                    acc_position_errors[motor_id] = 0;
-                }
-
-                set_motor_state(motor_id, torque_enable);
-                torques_enabled[motor_id] = torque_enable;
-            }
-        }
-        else if (reg == ORBITA_GOAL_POSITION)
-        {
-            uint8_t payload_per_motor = (1 + sizeof(int32_t));
-            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
-            LUOS_ASSERT (num_motors <= NB_MOTORS);
-            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
-
-            for (uint8_t i=0; i < num_motors; i++)
-            {
-                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
-
-                uint8_t motor_id = motor_data[0];
-                LUOS_ASSERT (motor_id < NB_MOTORS);
-
-                memcpy((int32_t *)target_positions + motor_id, motor_data + 1, sizeof(int32_t));
-
-                d_position_errors[i] = 0;
-                acc_position_errors[i] = 0;
-            }
-        }
-        else if (reg == ORBITA_ANGLE_LIMIT)
-        {
-            uint8_t payload_per_motor = (1 + sizeof(int32_t) * 2);
-            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
-            LUOS_ASSERT (num_motors <= NB_MOTORS);
-            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
-
-            for (uint8_t i=0; i < num_motors; i++)
-            {
-                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
-                uint8_t motor_id = motor_data[0];
-                LUOS_ASSERT (motor_id < NB_MOTORS);
-
-                memcpy((int32_t *)position_limits + 2 * motor_id, motor_data + 1, sizeof(int32_t) * 2);
-            }
-        }
-        else if (reg == ORBITA_TEMPERATURE_SHUTDOWN)
-        {
-            uint8_t payload_per_motor = (1 + sizeof(float));
-            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
-            LUOS_ASSERT (num_motors <= NB_MOTORS);
-            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
-
-            for (uint8_t i=0; i < num_motors; i++)
-            {
-                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
-                uint8_t motor_id = motor_data[0];
-                LUOS_ASSERT (motor_id < NB_MOTORS);
-
-                memcpy((float *)temperatures_shutdown + motor_id, motor_data + 1, sizeof(float));
-            }
-        }
-        else if (reg == ORBITA_PID)
-        {
-            uint8_t payload_per_motor = (1 + sizeof(float) * 3);
-            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
-            LUOS_ASSERT (num_motors <= NB_MOTORS);
-            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
-
-            for (uint8_t i=0; i < num_motors; i++)
-            {
-                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
-                uint8_t motor_id = motor_data[0];
-                LUOS_ASSERT (motor_id < NB_MOTORS);
-
-                memcpy((float *)pid + 3 * motor_id, motor_data + 1, sizeof(float) * 3);
-            }
-        }
-        else if (reg == ORBITA_MAX_TORQUE)
-        {
-            uint8_t payload_per_motor = (1 + sizeof(float));
-            uint8_t num_motors = (msg->header.size - 3) / payload_per_motor;
-            LUOS_ASSERT (num_motors <= NB_MOTORS);
-            LUOS_ASSERT (payload_per_motor * num_motors + 3 == msg->header.size);
-
-            for (uint8_t i=0; i < num_motors; i++)
-            {
-                uint8_t *motor_data = msg->data + 3 + i * payload_per_motor;
-                uint8_t motor_id = motor_data[0];
-                LUOS_ASSERT (motor_id < NB_MOTORS);
-
-                float val;
-                memcpy(&val + motor_id, motor_data + 1, sizeof(float));
-                val = clip(val, -100, 100);
-                max_torque[motor_id] = val;
-            }
-        }
-        // case ORBITA_MAX_SPEED:
-        else if (reg == ORBITA_ZERO)
-        {
-            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
-            AS5045.ReadAngle(angles);
-
-            zero_positions[0] = (int32_t)angles[0].Bits.AngPos;
-            zero_positions[1] = (int32_t)angles[2].Bits.AngPos;
-            zero_positions[2] = (int32_t)angles[1].Bits.AngPos;
-
-            Orbita_FlashWriteLuosMemoryInfo(ORBITA_ZERO_EEPROM_ADDR, 3 * sizeof(int32_t), (uint8_t *)zero_positions);
-        }
-        else if (reg == ORBITA_RECALIBRATE)
-        {
-            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
-            AS5045.ReadAngle(angles);
-
-            present_positions[0] = (int32_t)angles[0].Bits.AngPos;
-            present_positions[1] = (int32_t)angles[2].Bits.AngPos;
-            present_positions[2] = (int32_t)angles[1].Bits.AngPos;
-
-            TIM2->CNT = 0;
-            TIM3->CNT = 0;
-            TIM4->CNT = 0;
-        }
-        else if (reg == ORBITA_POSITION_PUB_PERIOD)
-        {
-            position_pub_period = msg->data[4];
-        }
-        else if (reg == ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD)
-        {
-            memcpy(&temperature_fan_trigger_threshold, msg->data + 4, sizeof(float));
-            MAX31730.SetThr(temperature_fan_trigger_threshold);
-        }
-        else if (reg == ORBITA_FAN_STATE)
-        {
-            // TODO: can we manually trigger the fan?
-        }
-        else
-        {
-            LUOS_ASSERT (0);
-        }
-    }
+		HAL_UART_Transmit(&huart1, send_buff, sizeof(send_buff), 5000);
+	}
 }
 
 void setup_hardware(void)
@@ -444,9 +150,6 @@ void update_motor_asserv()
 
 void set_motor_state(uint8_t motor_index, uint8_t enable)
 {
-    LUOS_ASSERT (motor_index == 0 || motor_index == 1 || motor_index == 2);
-    LUOS_ASSERT (enable == 0 || enable == 1);
-
     if (motor_index == 0)
     {
         HAL_GPIO_WritePin(MOT2_EN_GPIO_Port, MOT2_EN_Pin, enable);
@@ -463,7 +166,6 @@ void set_motor_state(uint8_t motor_index, uint8_t enable)
 
 void set_motor_ratio(uint8_t motor_index, float ratio)
 {
-    LUOS_ASSERT(motor_index == 0 || motor_index == 1 || motor_index == 2);
     ratio = clip(ratio, -max_torque[motor_index], max_torque[motor_index]);
 
     uint16_t pulse_1, pulse_2;

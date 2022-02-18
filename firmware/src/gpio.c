@@ -50,14 +50,17 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, RS485_RE_Pin|RS485_DE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, MOT1_EN_Pin|MOT1_PMODE_Pin|HeartBeat_Pin|MOT3_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, MOT2_EN_Pin|MOT2_PMODE_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MOT3_PMODE_Pin|RS485_LVL_DOWN_Pin|RS485_LVL_UP_Pin|ROBUS_RE_Pin 
-                          |ROBUS_DE_Pin, GPIO_PIN_RESET);
+  // /*Configure GPIO pin Output Level */
+  // HAL_GPIO_WritePin(GPIOB, MOT3_PMODE_Pin|RS485_LVL_DOWN_Pin|RS485_LVL_UP_Pin|ROBUS_RE_Pin 
+  //                         |ROBUS_DE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_SET);
@@ -97,26 +100,26 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MOT3_nFAULT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PBPin PBPin PBPin PBPin 
-                           PBPin */
-  GPIO_InitStruct.Pin = MOT3_PMODE_Pin|RS485_LVL_DOWN_Pin|RS485_LVL_UP_Pin|ROBUS_RE_Pin 
-                          |ROBUS_DE_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  // /*Configure GPIO pins : PBPin PBPin PBPin PBPin 
+  //                          PBPin */
+  // GPIO_InitStruct.Pin = MOT3_PMODE_Pin|RS485_LVL_DOWN_Pin|RS485_LVL_UP_Pin|ROBUS_RE_Pin 
+  //                         |ROBUS_DE_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  // GPIO_InitStruct.Pull = GPIO_NOPULL;
+  // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  // HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = ROBUS_PTPB_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(ROBUS_PTPB_GPIO_Port, &GPIO_InitStruct);
+  // /*Configure GPIO pin : PtPin */
+  // GPIO_InitStruct.Pin = ROBUS_PTPB_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  // GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  // HAL_GPIO_Init(ROBUS_PTPB_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = ROBUS_PTPA_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(ROBUS_PTPA_GPIO_Port, &GPIO_InitStruct);
+  // /*Configure GPIO pin : PtPin */
+  // GPIO_InitStruct.Pin = ROBUS_PTPA_Pin;
+  // GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  // GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  // HAL_GPIO_Init(ROBUS_PTPA_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = AS5045B_SS_Pin;
@@ -149,6 +152,13 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MOT1_nFAULT_GPIO_Port, &GPIO_InitStruct);
+
+    /*Configure GPIO pins : PBPin PBPin */
+  GPIO_InitStruct.Pin = RS485_RE_Pin|RS485_DE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);

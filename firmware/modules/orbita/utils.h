@@ -1,11 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "luos.h"
-
-void Orbita_FlashReadLuosMemoryInfo(uint32_t addr, uint16_t data_size, uint8_t *data);
-void Orbita_FlashWriteLuosMemoryInfo(uint32_t addr, uint16_t data_size, uint8_t data[]);
-
 
  #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \

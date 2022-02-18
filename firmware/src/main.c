@@ -30,7 +30,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "luos.h"
 #include "orbita.h"
 /* USER CODE END Includes */
 
@@ -109,7 +108,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
     HAL_GPIO_WritePin(AS5045B_MOSI_GPIO_Port, AS5045B_MOSI_Pin, GPIO_PIN_RESET);
     HAL_Delay(500);
-    Luos_Init();
+    // Luos_Init();
     Orbita_Init();
     HAL_TIM_Base_Start_IT(&htim6);
 
@@ -119,7 +118,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
     while (1)
     {
-        Luos_Loop();
+        // Luos_Loop();
         Orbita_Loop();
     /* USER CODE END WHILE */
 

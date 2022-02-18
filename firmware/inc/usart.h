@@ -30,6 +30,8 @@
 
 /* USER CODE END Includes */
 
+extern UART_HandleTypeDef huart1;
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

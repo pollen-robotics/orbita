@@ -1,7 +1,7 @@
 #ifndef ORBITA_H
 #define ORBITA_H
 
-#include "luos.h"
+#include <stdint.h>
 
 #define ORBITA_ID 40
 
@@ -30,17 +30,17 @@
 
 typedef enum 
 {
-    ORBITA_ANGLE_LIMIT = 0,
-    ORBITA_TEMPERATURE_SHUTDOWN = 1,
+    // ORBITA_ANGLE_LIMIT = 0,
+    // ORBITA_TEMPERATURE_SHUTDOWN = 1,
 
     ORBITA_PRESENT_POSITION = 10,
-    ORBITA_PRESENT_SPEED = 11,
-    ORBITA_PRESENT_LOAD = 12,
+    // ORBITA_PRESENT_SPEED = 11,
+    // ORBITA_PRESENT_LOAD = 12,
     ORBITA_POSITION_ABSOLUTE = 13,
 
     ORBITA_GOAL_POSITION = 20,
-    ORBITA_MAX_SPEED = 21,
-    ORBITA_MAX_TORQUE = 22,
+    // ORBITA_MAX_SPEED = 21,
+    // ORBITA_MAX_TORQUE = 22,
 
     ORBITA_TORQUE_ENABLE = 30,
     ORBITA_PID = 31,
@@ -48,18 +48,18 @@ typedef enum
 
     ORBITA_ZERO = 40,
     ORBITA_RECALIBRATE = 41,
-    ORBITA_MAGNETIC_QUALITY = 42,
+    // ORBITA_MAGNETIC_QUALITY = 42,
 
-    ORBITA_FAN_STATE = 50,
-    ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD = 51,
+    // ORBITA_FAN_STATE = 50,
+    // ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD = 51,
 
-    ORBITA_POSITION_PUB_PERIOD = 60,
+    // ORBITA_POSITION_PUB_PERIOD = 60,
 
 } orbita_register_t;
 
 void Orbita_Init(void);
 void Orbita_Loop(void);
-void Orbita_MsgHandler(container_t *src, msg_t *msg);
+// void Orbita_MsgHandler(container_t *src, msg_t *msg);
 
 uint8_t is_alive(void);
 void status_led(uint8_t state);
