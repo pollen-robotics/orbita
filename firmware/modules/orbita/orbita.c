@@ -162,7 +162,7 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         }
         break;
     case ORBITA_PID:
-        fill_write_status_with_float(pid, coded_values, size, 3, status);
+        fill_write_status_with_float((float *)pid, coded_values, size, 3, status);
         break;
     default:
         status->error |= (1 << INSTRUCTION_ERROR);
