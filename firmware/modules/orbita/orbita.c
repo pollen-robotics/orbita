@@ -144,17 +144,22 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
 {
     switch (reg)
     {
+        // TODO: check value range
     case ORBITA_ANGLE_LIMIT:
+        fill_write_status_with_int32((int32_t *)position_limits, coded_values, size, 2, status);
         break;
-
-    case ORBITA_TORQUE_ENABLE:
-        fill_write_status_with_uint8((uint8_t *)torques_enabled, coded_values, size, status);
+    case ORBITA_TEMPERATURE_SHUTDOWN:
+        fill_write_status_with_float(temperatures_shutdown, coded_values, size, 1, status);
         break;
-    
     case ORBITA_GOAL_POSITION:
-        fill_write_status_with_int32((int32_t *)target_positions, coded_values, size, status);
+        fill_write_status_with_int32((int32_t *)target_positions, coded_values, size, 1, status);
         break;
-
+    case ORBITA_TORQUE_ENABLE:
+        fill_write_status_with_uint8((uint8_t *)torques_enabled, coded_values, size, 1, status);
+        break;
+    case ORBITA_PID:
+        fill_write_status_with_float(pid, coded_values, size, 3, status);
+        break;
     default:
         status->error |= (1 << INSTRUCTION_ERROR);
         break;

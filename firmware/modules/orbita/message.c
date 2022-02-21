@@ -63,10 +63,10 @@ void fill_read_status_with_float(float *data, int nb, status_packet_t *p)
 
 void fill_write_status_with_uint8(
     uint8_t *target_values, 
-    uint8_t *coded_values, uint8_t size, 
+    uint8_t *coded_values, uint8_t size, uint8_t nb,
     status_packet_t *status)
 {
-    if (size != (NB_MOTORS * sizeof(uint8_t)))
+    if (size != (NB_MOTORS * nb * sizeof(uint8_t)))
     {
         status->error = INSTRUCTION_ERROR;
         return;
@@ -77,10 +77,24 @@ void fill_write_status_with_uint8(
 
 void fill_write_status_with_int32(
     int32_t *target_values, 
-    uint8_t *coded_values, uint8_t size, 
+    uint8_t *coded_values, uint8_t size, uint8_t nb,
     status_packet_t *status)
 {
-    if (size != (NB_MOTORS * sizeof(int32_t)))
+    if (size != (NB_MOTORS * nb * sizeof(int32_t)))
+    {
+        status->error = INSTRUCTION_ERROR;
+        return;
+    }
+
+    memcpy(target_values, coded_values, size);
+}
+
+void fill_write_status_with_float(
+    float *target_values, 
+    uint8_t *coded_values, uint8_t size, uint8_t nb,
+    status_packet_t *status)
+{
+    if (size != (NB_MOTORS * nb * sizeof(float)))
     {
         status->error = INSTRUCTION_ERROR;
         return;
