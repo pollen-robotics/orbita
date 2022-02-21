@@ -6,11 +6,9 @@
 #include "MAX31730.h"
 #include "AS5045B.h"
 #include "utils.h"
-#include "usart.h"
 
-static uint32_t keep_alive = 0;
-
-#define ORBITA_ZERO_EEPROM_ADDR 34
+#include "message.h"
+#include "rs485_com.h"
 
 int32_t zero_positions[NB_MOTORS];
 
@@ -25,16 +23,16 @@ static volatile float pid[NB_MOTORS][3] = {0};
 static volatile int32_t d_position_errors[NB_MOTORS] = {0};
 static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
-static float temperatures[NB_MOTORS] = {0.0};
+static float temperatures[NB_MOTORS] = {10.0, 20.0, 30.0};
 static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
 
-static uint8_t position_pub_period = DEFAULT_POSITION_PUB_PERIOD;
 static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
 
 
 void Orbita_Init(void)
 {
     setup_hardware();
+    update_and_check_temperatures();
 
     for (uint8_t motor_index=0; motor_index < NB_MOTORS; motor_index++)
     {
@@ -51,36 +49,107 @@ void Orbita_Init(void)
     status_led(1);
 }
 
-#define SEND_BUFF_SIZE 10
-#define RECV_BUFF_SIZE 2
-
-uint8_t send_buff[SEND_BUFF_SIZE];
-uint8_t recv_buff[RECV_BUFF_SIZE];
-
+static instruction_packet_t instruction_packet;
+static status_packet_t status_packet;
 
 void Orbita_Loop(void)
 {    
-	// PASSER EN RX
-	HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(RS485_DE_GPIO_Port, RS485_DE_Pin, GPIO_PIN_RESET);
-
-	HAL_StatusTypeDef ret = HAL_UART_Receive(&huart1, recv_buff, RECV_BUFF_SIZE, 1000);
-
-    if (ret == HAL_TIMEOUT) {
-        status_led(1);
+    static uint32_t last_temp_published = 0;
+    if ((HAL_GetTick() - last_temp_published) >= TEMPERATURE_CHECK_PERIOD)
+    {
+        update_and_check_temperatures();
+        last_temp_published = HAL_GetTick();
     }
 
-	if (ret == HAL_OK) {
-        status_led(0);
+    HAL_StatusTypeDef ret = rs485_read_message(ORBITA_ID, &instruction_packet);
+    if (ret != HAL_OK)
+    {
+        status_led(1);
+        return;
+    }
+        
+    Orbita_HandleMessage(instruction_packet, &status_packet);
+    
+    ret = rs485_send_message(ORBITA_ID, status_packet);
+    if (ret != HAL_OK)
+    {
+        status_led(1);
+        return;
+    }
 
-		// PASSER EN TX
-		HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(RS485_DE_GPIO_Port, RS485_DE_Pin, GPIO_PIN_SET);
+    status_led(0);
+}
 
-		HAL_Delay(1);
 
-		HAL_UART_Transmit(&huart1, send_buff, sizeof(send_buff), 5000);
-	}
+// TODO: error as bitfield!
+
+
+void Orbita_HandleMessage(instruction_packet_t instr, status_packet_t *status)
+{
+    status->error = Orbita_GetCurrentError();
+    status->size = 0;
+
+    if (instr.type == PING_MESSAGE)
+    {
+        status->id = ORBITA_ID;
+    }
+    else if (instr.type == READ_DATA_MESSAGE)
+    {
+        orbita_register_t addr = instr.payload[0];
+        // uint8_t length = instr.payload[1];
+
+        Orbita_HandleReadData(addr, status);
+    }
+    else if (instr.type == WRITE_DATA_MESSAGE)
+    {
+        orbita_register_t addr = instr.payload[0];
+        Orbita_HandleWriteData(addr, instr.payload + 1, instr.size - 1, status);
+    } 
+    else 
+    {
+        status->error = INSTRUCTION_ERROR;
+    }
+}
+
+void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
+{
+    switch (reg)
+    {
+    case ORBITA_PRESENT_POSITION:
+        fill_read_status_with_int32((int32_t *)present_positions, NB_MOTORS, status);
+        break;
+
+    case ORBITA_TEMPERATURE:
+        fill_read_status_with_float(temperatures, NB_MOTORS, status);
+        break;
+    
+    default:
+        status->error = INSTRUCTION_ERROR;
+        break;
+    }
+}
+
+void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_t size, status_packet_t *status)
+{
+    switch (reg)
+    {
+    case ORBITA_TORQUE_ENABLE:
+        fill_write_status_with_uint8((uint8_t *)torques_enabled, coded_values, size, status);
+        break;
+    
+    case ORBITA_GOAL_POSITION:
+        fill_write_status_with_int32((int32_t *)target_positions, coded_values, NB_MOTORS, status);
+        break;
+
+    default:
+        status->error = INSTRUCTION_ERROR;
+        break;
+    }
+}
+
+uint8_t Orbita_GetCurrentError(void)
+{
+    return 0;
 }
 
 void setup_hardware(void)
@@ -205,16 +274,22 @@ void read_temperatures(float *temperatures)
     temperatures[0] = temp[0];
     temperatures[1] = temp[2];
     temperatures[2] = temp[1];
-
 }
 
-uint8_t is_alive(void)
+void update_and_check_temperatures() 
 {
-    if (keep_alive == 0)
+    read_temperatures(temperatures);
+
+    for (uint8_t i=0; i < NB_MOTORS; i++)
     {
-        return 0;
+        if (temperatures[i] > temperatures_shutdown[i])
+        {
+            for (uint8_t m=0; m < NB_MOTORS; m++)
+            {
+                set_motor_state(m, 0);
+            }
+        }
     }
-    return (HAL_GetTick() - keep_alive) <= KEEP_ALIVE_PERIOD;
 }
 
 void status_led(uint8_t state)
