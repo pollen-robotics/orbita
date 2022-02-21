@@ -107,22 +107,33 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
 {
     switch (reg)
     {
+    case ORBITA_ANGLE_LIMIT:
+        fill_read_status_with_int32((int32_t *)position_limits, 2, status);
+        break;
+    case ORBITA_TEMPERATURE_SHUTDOWN:
+        fill_read_status_with_float(temperatures_shutdown, 1, status);
+        break;
     case ORBITA_PRESENT_POSITION:
         fill_read_status_with_int32((int32_t *)present_positions, 1, status);
         break;
-
+    case ORBITA_GOAL_POSITION:
+        fill_read_status_with_int32((int32_t *)target_positions, 1, status);
+        break;
     case ORBITA_TORQUE_ENABLE:
         fill_read_status_with_uint8((uint8_t *)torques_enabled, 1, status);
         break;
-
     case ORBITA_PID:
         fill_read_status_with_float((float *)pid, 3, status);
         break;
-
     case ORBITA_TEMPERATURE:
         fill_read_status_with_float(temperatures, 1, status);
         break;
-    
+    case ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD:
+    {
+        float tmp[3] = {temperature_fan_trigger_threshold, temperature_fan_trigger_threshold, temperature_fan_trigger_threshold};
+        fill_read_status_with_float(tmp, 1, status);
+    }
+        break;
     default:
         status->error |= (1 << INSTRUCTION_ERROR);
         break;
@@ -133,6 +144,9 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
 {
     switch (reg)
     {
+    case ORBITA_ANGLE_LIMIT:
+        break;
+
     case ORBITA_TORQUE_ENABLE:
         fill_write_status_with_uint8((uint8_t *)torques_enabled, coded_values, size, status);
         break;
