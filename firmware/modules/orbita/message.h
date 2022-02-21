@@ -49,8 +49,9 @@ int8_t parse_message_header(uint8_t *recv_buff, uint8_t *id, uint8_t *length);
 int8_t parse_message_instruction(uint8_t *recv_buff, uint8_t length, instruction_packet_t *p);
 
 
-void fill_read_status_with_int32(int32_t *data, status_packet_t *p);
-void fill_read_status_with_float(float *data, status_packet_t *p);
+void fill_read_status_with_uint8(uint8_t *data, int nb, status_packet_t *p);
+void fill_read_status_with_int32(int32_t *data, int nb, status_packet_t *p);
+void fill_read_status_with_float(float *data, int nb, status_packet_t *p);
 
 void fill_write_status_with_uint8(uint8_t *target_values, uint8_t *coded_values, uint8_t size, status_packet_t *status);
 void fill_write_status_with_int32(int32_t *target_values, uint8_t *coded_values, uint8_t size, status_packet_t *status);

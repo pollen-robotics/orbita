@@ -108,11 +108,19 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
     switch (reg)
     {
     case ORBITA_PRESENT_POSITION:
-        fill_read_status_with_int32((int32_t *)present_positions, status);
+        fill_read_status_with_int32((int32_t *)present_positions, 1, status);
+        break;
+
+    case ORBITA_TORQUE_ENABLE:
+        fill_read_status_with_uint8((uint8_t *)torques_enabled, 1, status);
+        break;
+
+    case ORBITA_PID:
+        fill_read_status_with_float((float *)pid, 3, status);
         break;
 
     case ORBITA_TEMPERATURE:
-        fill_read_status_with_float(temperatures, status);
+        fill_read_status_with_float(temperatures, 1, status);
         break;
     
     default:

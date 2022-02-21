@@ -43,15 +43,21 @@ int8_t parse_message_instruction(uint8_t *recv_buff, uint8_t length, instruction
     return 0;
 }
 
-void fill_read_status_with_int32(int32_t *data, status_packet_t *p)
+void fill_read_status_with_uint8(uint8_t *data, int nb, status_packet_t *p)
 {
-    p->size = sizeof(int32_t) * NB_MOTORS;
+    p->size = sizeof(uint8_t) * NB_MOTORS * nb;
     memcpy(p->payload, data, p->size);
 }
 
-void fill_read_status_with_float(float *data, status_packet_t *p)
+void fill_read_status_with_int32(int32_t *data, int nb, status_packet_t *p)
 {
-    p->size = sizeof(float) * NB_MOTORS;
+    p->size = sizeof(int32_t) * NB_MOTORS * nb;
+    memcpy(p->payload, data, p->size);
+}
+
+void fill_read_status_with_float(float *data, int nb, status_packet_t *p)
+{
+    p->size = sizeof(float) * NB_MOTORS * nb;
     memcpy(p->payload, data, p->size);
 }
 
