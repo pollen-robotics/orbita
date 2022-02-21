@@ -60,14 +60,15 @@ void Orbita_Loop(void)
         last_temp_published = HAL_GetTick();
     }
 
-    HAL_StatusTypeDef ret = rs485_read_message(ORBITA_ID, &instruction_packet);
+    uint8_t crc;
+    HAL_StatusTypeDef ret = rs485_read_message(ORBITA_ID, &instruction_packet, &crc);
     if (ret != HAL_OK)
     {
         status_led(1);
         return;
     }
-        
-    Orbita_HandleMessage(instruction_packet, &status_packet);
+
+    Orbita_HandleMessage(instruction_packet, crc, &status_packet);
     
     ret = rs485_send_message(ORBITA_ID, status_packet);
     if (ret != HAL_OK)
@@ -79,10 +80,15 @@ void Orbita_Loop(void)
     status_led(0);
 }
 
-void Orbita_HandleMessage(instruction_packet_t instr, status_packet_t *status)
+void Orbita_HandleMessage(instruction_packet_t instr, uint8_t crc, status_packet_t *status)
 {
     status->error = Orbita_GetCurrentError();
     status->size = 0;
+
+    if (instruction_packet.crc != crc)
+    {
+        status_packet.error |= (1 << CHECKSUM_ERROR);
+    }
 
     switch (instr.type)
     {

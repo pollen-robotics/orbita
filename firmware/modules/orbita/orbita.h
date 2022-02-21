@@ -57,7 +57,7 @@ void Orbita_Init(void);
 void Orbita_Loop(void);
 
 
-void Orbita_HandleMessage(instruction_packet_t instr, status_packet_t *status);
+void Orbita_HandleMessage(instruction_packet_t instr, uint8_t crc, status_packet_t *status);
 void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status);
 void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_t size, status_packet_t *status);
 

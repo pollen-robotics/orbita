@@ -2,6 +2,7 @@
 
 #include "string.h"
 #include "usart.h"
+#include "crc.h"
 
 #define MAX_BUFF_SIZE 128
 
@@ -9,7 +10,7 @@ static uint8_t recv_buff[MAX_BUFF_SIZE];
 static uint8_t send_buff[MAX_BUFF_SIZE];
 
 
-HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p)
+HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p, uint8_t *crc)
 {
     rs485_switch_to_rx();
 
@@ -27,7 +28,7 @@ HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p)
     }
     p->id = id;
 
-    ret = HAL_UART_Receive(&huart1, recv_buff, length, 1000);
+    ret = HAL_UART_Receive(&huart1, recv_buff + MSG_HEADER_SIZE, length, 1000);
     if (ret != HAL_OK)
     {
         return ret;
@@ -38,10 +39,13 @@ HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p)
         return HAL_TIMEOUT;
     }
 
-    if (parse_message_instruction(recv_buff, length, p) == -1)
+    *crc = compute_crc(recv_buff + 2, length + 1);
+
+    if (parse_message_instruction(recv_buff + MSG_HEADER_SIZE, length, p) == -1)
     {
         return HAL_ERROR;
     }
+    
     return HAL_OK;
 }
 
@@ -58,8 +62,8 @@ HAL_StatusTypeDef rs485_send_message(uint8_t my_id, status_packet_t p)
     {
         memcpy(send_buff + 5, p.payload, p.size);
     }
-    // TODO: Checksum
-    send_buff[5 + p.size] = 0x42;
+
+    send_buff[5 + p.size] = compute_crc(send_buff + 2, p.size + 3);
 
     return HAL_UART_Transmit(&huart1, send_buff, p.size + 6, 1000);
 }

@@ -20,7 +20,7 @@ int8_t parse_message_header(uint8_t *recv_buff, uint8_t *id, uint8_t *length)
 int8_t parse_message_instruction(uint8_t *recv_buff, uint8_t length, instruction_packet_t *p)
 {
     p->type = recv_buff[0];
-    // TODO: check CRC
+    p->crc = recv_buff[length - 1];
 
     if (p->type == PING_MESSAGE)
     {
@@ -101,4 +101,15 @@ void fill_write_status_with_float(
     }
 
     memcpy(target_values, coded_values, size);
+}
+
+
+uint8_t compute_crc(uint8_t *data, uint8_t size)
+{
+    uint8_t s = 0;
+    for (uint8_t i=0; i < size; i++)
+    {
+        s += data[i];
+    }
+    return 255 - s;
 }

@@ -5,7 +5,7 @@
 
 #include "message.h"
 
-HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p);
+HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p, uint8_t *crc);
 HAL_StatusTypeDef rs485_send_message(uint8_t my_id, status_packet_t p);
 
 void rs485_switch_to_tx();

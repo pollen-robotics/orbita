@@ -32,6 +32,8 @@ typedef struct {
     uint8_t size;
     uint8_t payload[MAX_PAYLOAD_SIZE];
 
+    uint8_t crc;
+
 } instruction_packet_t;
 
 
@@ -56,5 +58,7 @@ void fill_read_status_with_float(float *data, int nb, status_packet_t *p);
 void fill_write_status_with_uint8(uint8_t *target_values, uint8_t *coded_values, uint8_t size, uint8_t nb, status_packet_t *status);
 void fill_write_status_with_int32(int32_t *target_values, uint8_t *coded_values, uint8_t size, uint8_t nb, status_packet_t *status);
 void fill_write_status_with_float(float *target_values, uint8_t *coded_values, uint8_t size, uint8_t nb, status_packet_t *status);
+
+uint8_t compute_crc(uint8_t *data, uint8_t size);
 
 #endif // ORBITA_MESSAGE_H
