@@ -156,6 +156,10 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         break;
     case ORBITA_TORQUE_ENABLE:
         fill_write_status_with_uint8((uint8_t *)torques_enabled, coded_values, size, 1, status);
+        for (uint8_t i=0; i < NB_MOTORS; i++)
+        {
+            set_motor_state(i, torques_enabled[i]);
+        }
         break;
     case ORBITA_PID:
         fill_write_status_with_float(pid, coded_values, size, 3, status);
