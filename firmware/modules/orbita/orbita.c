@@ -10,8 +10,6 @@
 #include "message.h"
 #include "rs485_com.h"
 
-int32_t zero_positions[NB_MOTORS];
-
 static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
 static volatile int32_t position_limits[NB_MOTORS][2] = {0};
@@ -23,16 +21,17 @@ static volatile float pid[NB_MOTORS][3] = {0};
 static volatile int32_t d_position_errors[NB_MOTORS] = {0};
 static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
-static float temperatures[NB_MOTORS] = {10.0, 20.0, 30.0};
+static float temperatures[NB_MOTORS] = {0};
 static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
 
 static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
+
+static uint8_t current_error = 0;
 
 
 void Orbita_Init(void)
 {
     setup_hardware();
-    update_and_check_temperatures();
 
     for (uint8_t motor_index=0; motor_index < NB_MOTORS; motor_index++)
     {
@@ -80,34 +79,27 @@ void Orbita_Loop(void)
     status_led(0);
 }
 
-
-// TODO: error as bitfield!
-
-
 void Orbita_HandleMessage(instruction_packet_t instr, status_packet_t *status)
 {
     status->error = Orbita_GetCurrentError();
     status->size = 0;
 
-    if (instr.type == PING_MESSAGE)
+    switch (instr.type)
     {
-        status->id = ORBITA_ID;
-    }
-    else if (instr.type == READ_DATA_MESSAGE)
-    {
-        orbita_register_t addr = instr.payload[0];
-        // uint8_t length = instr.payload[1];
+    case PING_MESSAGE:
+        break;
 
-        Orbita_HandleReadData(addr, status);
-    }
-    else if (instr.type == WRITE_DATA_MESSAGE)
-    {
-        orbita_register_t addr = instr.payload[0];
-        Orbita_HandleWriteData(addr, instr.payload + 1, instr.size - 1, status);
-    } 
-    else 
-    {
-        status->error = INSTRUCTION_ERROR;
+    case READ_DATA_MESSAGE:
+        Orbita_HandleReadData(instr.payload[0], status);
+        break;
+
+    case WRITE_DATA_MESSAGE:
+        Orbita_HandleWriteData(instr.payload[0], instr.payload + 1, instr.size - 1, status);
+        break;
+    
+    default:
+        status->error |= (1 << INSTRUCTION_ERROR);
+        break;
     }
 }
 
@@ -116,15 +108,15 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
     switch (reg)
     {
     case ORBITA_PRESENT_POSITION:
-        fill_read_status_with_int32((int32_t *)present_positions, NB_MOTORS, status);
+        fill_read_status_with_int32((int32_t *)present_positions, status);
         break;
 
     case ORBITA_TEMPERATURE:
-        fill_read_status_with_float(temperatures, NB_MOTORS, status);
+        fill_read_status_with_float(temperatures, status);
         break;
     
     default:
-        status->error = INSTRUCTION_ERROR;
+        status->error |= (1 << INSTRUCTION_ERROR);
         break;
     }
 }
@@ -138,18 +130,18 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         break;
     
     case ORBITA_GOAL_POSITION:
-        fill_write_status_with_int32((int32_t *)target_positions, coded_values, NB_MOTORS, status);
+        fill_write_status_with_int32((int32_t *)target_positions, coded_values, size, status);
         break;
 
     default:
-        status->error = INSTRUCTION_ERROR;
+        status->error |= (1 << INSTRUCTION_ERROR);
         break;
     }
 }
 
 uint8_t Orbita_GetCurrentError(void)
 {
-    return 0;
+    return current_error;
 }
 
 void setup_hardware(void)
@@ -288,6 +280,7 @@ void update_and_check_temperatures()
             {
                 set_motor_state(m, 0);
             }
+            current_error |= (1 << OVERHEATING_ERROR);
         }
     }
 }
