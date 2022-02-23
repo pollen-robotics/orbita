@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define MAX_PAYLOAD_SIZE 64
+#define MAX_PAYLOAD_SIZE 256
 
 #define MSG_HEADER_SIZE 4
 
@@ -29,11 +29,10 @@ typedef struct {
 
     uint8_t id;
     
-    uint8_t size;
-    uint8_t payload[MAX_PAYLOAD_SIZE];
-
     uint8_t crc;
 
+    uint8_t payload_size;
+    uint8_t payload[MAX_PAYLOAD_SIZE];
 } instruction_packet_t;
 
 
@@ -41,7 +40,7 @@ typedef struct {
     uint8_t id;
     uint8_t error;
 
-    uint8_t size;
+    uint8_t payload_size;
     uint8_t payload[MAX_PAYLOAD_SIZE];
 
 } status_packet_t;

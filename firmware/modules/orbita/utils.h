@@ -1,6 +1,10 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stdint.h>
+
+void toggle_status_led();
+void status_led(uint8_t state);
 
  #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \

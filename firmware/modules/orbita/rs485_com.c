@@ -2,71 +2,21 @@
 
 #include "string.h"
 #include "usart.h"
-#include "crc.h"
-
-#define MAX_BUFF_SIZE 128
-
-static uint8_t recv_buff[MAX_BUFF_SIZE];
-static uint8_t send_buff[MAX_BUFF_SIZE];
+#include "message.h"
+#include "utils.h"
 
 
-HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p, uint8_t *crc)
-{
-    rs485_switch_to_rx();
+typedef enum {
+    RxUnknown,
+    RxReadingHeader,
+    RxReadingInstructionPacket,
+    RxMessageReady,
+} rx_state_t;
 
-    HAL_StatusTypeDef ret = HAL_UART_Receive(&huart1, recv_buff, MSG_HEADER_SIZE, 1000);
-    if (ret != HAL_OK)
-    {
-        return ret;
-    }
-    
-    uint8_t id;
-    uint8_t length;
-    if (parse_message_header(recv_buff, &id, &length) == -1)
-    {
-        return HAL_ERROR;
-    }
-    p->id = id;
+#define MAX_BUFF_SIZE 256 + MSG_HEADER_SIZE + 1
 
-    ret = HAL_UART_Receive(&huart1, recv_buff + MSG_HEADER_SIZE, length, 1000);
-    if (ret != HAL_OK)
-    {
-        return ret;
-    }
-    
-    if (my_id != id)
-    {
-        return HAL_TIMEOUT;
-    }
-
-    *crc = compute_crc(recv_buff + 2, length + 1);
-
-    if (parse_message_instruction(recv_buff + MSG_HEADER_SIZE, length, p) == -1)
-    {
-        return HAL_ERROR;
-    }
-    
-    return HAL_OK;
-}
-
-HAL_StatusTypeDef rs485_send_message(uint8_t my_id, status_packet_t p)
-{
-    rs485_switch_to_tx();
-
-    send_buff[0] = 255;
-    send_buff[1] = 255;
-    send_buff[2] = my_id;
-    send_buff[3] = p.size + 2;
-    send_buff[4] = p.error;
-    if (p.size > 0)
-    {
-        memcpy(send_buff + 5, p.payload, p.size);
-    }
-
-    send_buff[5 + p.size] = compute_crc(send_buff + 2, p.size + 3);
-
-    return HAL_UART_Transmit(&huart1, send_buff, p.size + 6, 1000);
-}
+static volatile uint8_t msg_buff[MAX_BUFF_SIZE];
+static volatile rx_state_t rx_state = RxUnknown;
 
 typedef enum {
     RX,
@@ -83,6 +33,8 @@ void rs485_switch_to_tx()
         HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(RS485_DE_GPIO_Port, RS485_DE_Pin, GPIO_PIN_SET);
         HAL_Delay(1);
+        // for (uint8_t i = 0; i < 100; i++)
+        // asm("NOP");
 
         communication_mode = TX;
     }
@@ -97,3 +49,124 @@ void rs485_switch_to_rx()
         communication_mode = RX;
     }
 }
+
+
+HAL_StatusTypeDef reset_rx_buff()
+{
+    rx_state = RxUnknown;
+    return HAL_UART_Receive_IT(&huart1, (uint8_t *)msg_buff, 1);
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+    if (UartHandle != &huart1)
+    {
+        return;
+    }
+
+    if (rx_state == RxUnknown)
+    {
+        // We are still waiting for the begining of the header (0xff)
+        if (msg_buff[0] != 0xff)
+        {
+            reset_rx_buff();
+        }
+        else
+        {
+            rx_state = RxReadingHeader;
+            // Wait for the rest of the header
+            HAL_UART_Receive_IT(&huart1, (uint8_t *)msg_buff + 1, 3);
+        }
+    }
+    // Here, we should have the entire header at this point (4 bytes)
+    else if (rx_state == RxReadingHeader) 
+    { 
+        // Wrong header
+        if ((msg_buff[0] != 0xff) || (msg_buff[1] != 0xff))
+        {
+            reset_rx_buff();
+        }
+        else
+        {
+            // Wait for the instruction packet
+            rx_state = RxReadingInstructionPacket;
+            uint8_t instruction_packet_length = msg_buff[3];
+            HAL_UART_Receive_IT(&huart1, (uint8_t *)msg_buff + 4, instruction_packet_length);
+        }
+    }
+    // We should have the entire message here
+    else if (rx_state == RxReadingInstructionPacket) 
+    {
+        rx_state = RxMessageReady;
+    }
+    // This should never happens
+    else if (rx_state == RxMessageReady)
+    {
+        while (1) {};
+    }
+}
+
+HAL_StatusTypeDef rs485_wait_for_message_IT()
+{
+    rs485_switch_to_rx();
+    return reset_rx_buff();
+}
+
+HAL_StatusTypeDef rs485_get_instruction_packet(instruction_packet_t *dst, uint8_t *crc)
+{
+    if (rx_state != RxMessageReady)
+    {
+        return HAL_ERROR;
+    }
+
+    // [0xff, 0xff, ID, LEN, INSTR, PARAM, ..., CRC]
+    dst->id = msg_buff[2];
+    dst->payload_size = msg_buff[3] - 2;
+    dst->type = msg_buff[4];
+
+    dst->crc = msg_buff[5 + dst->payload_size];
+    if (dst->payload_size > 0)
+    {
+        memcpy(dst->payload, (uint8_t *)msg_buff + 5, dst->payload_size);
+    }
+
+    *crc = compute_crc((uint8_t *)msg_buff + 2, 3 + dst->payload_size);
+
+    rx_state = RxUnknown;
+
+    return HAL_OK;
+}
+
+HAL_StatusTypeDef rs485_send_message_IT(uint8_t id, status_packet_t *p)
+{
+    rs485_switch_to_tx();
+
+    // [0xff, 0xff, ID, LEN, ERR, PARAM, ..., CRC]
+    //    0     1    2   3    4               5 + n
+    msg_buff[0] = 255;
+    msg_buff[1] = 255;
+    msg_buff[2] = id;
+    msg_buff[3] = p->payload_size + 2;
+    msg_buff[4] = p->error;
+    if (p->payload_size > 0)
+    {
+        memcpy((uint8_t *)msg_buff + 5, p->payload, p->payload_size);
+    }
+
+    msg_buff[5 + p->payload_size] = compute_crc((uint8_t *)msg_buff + 2, p->payload_size + 3);
+
+    return HAL_UART_Transmit_IT(&huart1, (uint8_t *)msg_buff, p->payload_size + 6);
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+    if (UartHandle != &huart1)
+    {
+        return;
+    }
+
+    toggle_status_led();
+    
+    rs485_wait_for_message_IT();    
+}
+

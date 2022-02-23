@@ -45,62 +45,59 @@ void Orbita_Init(void)
         set_motor_state(motor_index, 0);
     }
 
-    status_led(1);
+    rs485_wait_for_message_IT();
+
+    status_led(0);
 }
 
 static instruction_packet_t instruction_packet;
 static status_packet_t status_packet;
+static uint8_t crc;
 
 void Orbita_Loop(void)
-{    
+{   
     static uint32_t last_temp_published = 0;
     if ((HAL_GetTick() - last_temp_published) >= TEMPERATURE_CHECK_PERIOD)
     {
         update_and_check_temperatures();
         last_temp_published = HAL_GetTick();
-    }
+    } 
 
-    uint8_t crc;
-    HAL_StatusTypeDef ret = rs485_read_message(ORBITA_ID, &instruction_packet, &crc);
-    if (ret != HAL_OK)
+    if (rs485_get_instruction_packet(&instruction_packet, &crc) == HAL_OK)
     {
-        status_led(1);
-        return;
+        if (instruction_packet.id == ORBITA_ID)
+        {
+            Orbita_HandleMessage(&instruction_packet, crc, &status_packet);
+            rs485_send_message_IT(ORBITA_ID, &status_packet);
+        }
+        else
+        {
+            rs485_wait_for_message_IT();
+        }
     }
-
-    Orbita_HandleMessage(instruction_packet, crc, &status_packet);
-    
-    ret = rs485_send_message(ORBITA_ID, status_packet);
-    if (ret != HAL_OK)
-    {
-        status_led(1);
-        return;
-    }
-
-    status_led(0);
 }
 
-void Orbita_HandleMessage(instruction_packet_t instr, uint8_t crc, status_packet_t *status)
+void Orbita_HandleMessage(instruction_packet_t *instr, uint8_t crc, status_packet_t *status)
 {
     status->error = Orbita_GetCurrentError();
-    status->size = 0;
+    status->payload_size = 0;
 
-    if (instruction_packet.crc != crc)
+    if (instr->crc != crc)
     {
         status_packet.error |= (1 << CHECKSUM_ERROR);
     }
 
-    switch (instr.type)
+    switch (instr->type)
     {
     case PING_MESSAGE:
         break;
 
     case READ_DATA_MESSAGE:
-        Orbita_HandleReadData(instr.payload[0], status);
+        Orbita_HandleReadData(instr->payload[0], status);
         break;
 
     case WRITE_DATA_MESSAGE:
-        Orbita_HandleWriteData(instr.payload[0], instr.payload + 1, instr.size - 1, status);
+        Orbita_HandleWriteData(instr->payload[0], instr->payload + 1, instr->payload_size - 1, status);
         break;
     
     default:
@@ -317,14 +314,9 @@ void update_and_check_temperatures()
             {
                 set_motor_state(m, 0);
             }
-            current_error |= (1 << OVERHEATING_ERROR);
+            // current_error |= (1 << OVERHEATING_ERROR);
         }
     }
-}
-
-void status_led(uint8_t state)
-{
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, (state == 0));
 }
 
 volatile int32_t pos[10][3];

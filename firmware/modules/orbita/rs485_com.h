@@ -5,10 +5,10 @@
 
 #include "message.h"
 
-HAL_StatusTypeDef rs485_read_message(uint8_t my_id, instruction_packet_t *p, uint8_t *crc);
-HAL_StatusTypeDef rs485_send_message(uint8_t my_id, status_packet_t p);
+HAL_StatusTypeDef rs485_wait_for_message_IT();
+HAL_StatusTypeDef rs485_get_instruction_packet(instruction_packet_t *dst, uint8_t *crc);
 
-void rs485_switch_to_tx();
-void rs485_switch_to_rx();
+HAL_StatusTypeDef rs485_send_message_IT(uint8_t id, status_packet_t *status_packet);
+
 
 #endif // ORBITA_RS485_H
