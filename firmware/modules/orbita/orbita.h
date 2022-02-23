@@ -10,6 +10,7 @@
 #define NB_MOTORS 3
 
 #define DEFAULT_MAX_TORQUE 100.0
+// #define DEFAULT_MAX_TORQUE 100
 
 #define DEFAULT_P_GAIN 1.0
 #define DEFAULT_I_GAIN 0.0
@@ -24,7 +25,7 @@
 #define DEFAULT_SHUTDOWN_TEMPERATURE 50.0
 #define TEMPERATURE_CHECK_PERIOD 1000 // in ms
 
-typedef enum 
+typedef enum
 {
     ORBITA_ANGLE_LIMIT = 0,
     ORBITA_TEMPERATURE_SHUTDOWN = 1,
@@ -70,6 +71,7 @@ void setup_hardware(void);
 void update_present_positions(void);
 void set_motor_state(uint8_t motor_index, uint8_t enable);
 void set_motor_ratio(uint8_t motor_index, float ratio);
+// void set_motor_ratio(uint8_t motor_index, int32_t ratio);
 
 void read_temperatures(float *temperatures);
 void update_and_check_temperatures();
