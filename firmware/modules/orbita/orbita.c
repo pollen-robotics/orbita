@@ -43,6 +43,7 @@ void Orbita_Init(void)
         pid[motor_index][2] = DEFAULT_D_GAIN;
 
         set_motor_state(motor_index, 0);
+        /* torques_enabled[motor_index] =1; */
     }
 
     rs485_wait_for_message_IT();
@@ -99,7 +100,7 @@ void Orbita_HandleMessage(instruction_packet_t *instr, uint8_t crc, status_packe
     case WRITE_DATA_MESSAGE:
         Orbita_HandleWriteData(instr->payload[0], instr->payload + 1, instr->payload_size - 1, status);
         break;
-    
+
     default:
         status->error |= (1 << INSTRUCTION_ERROR);
         break;
@@ -210,9 +211,10 @@ void setup_hardware(void)
     AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
     AS5045.ReadAngle(angles);
 
-    present_positions[0] = (int32_t)angles[0].Bits.AngPos;
-    present_positions[1] = (int32_t)angles[2].Bits.AngPos;
-    present_positions[2] = (int32_t)angles[1].Bits.AngPos;
+    //Steve: do not read init value so we don't need to handle the zero
+    /* present_positions[0] = (int32_t)angles[0].Bits.AngPos; */
+    /* present_positions[1] = (int32_t)angles[2].Bits.AngPos; */
+    /* present_positions[2] = (int32_t)angles[1].Bits.AngPos; */
 
     // enable ABI mode on sensors
     HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_RESET);
@@ -224,7 +226,8 @@ void setup_hardware(void)
 
 void update_motor_asserv()
 {
-    for (uint8_t i=0; i < NB_MOTORS; i++)
+  status_led(1);
+  for (uint8_t i=0; i < NB_MOTORS; i++)
     {
         if (torques_enabled[i] == 1)
         {
@@ -235,12 +238,15 @@ void update_motor_asserv()
             int32_t i_err = clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
             float ratio = (float)pos_err * pid[i][0] + (float)i_err * pid[i][1] + (float)d_pos_err * pid[i][2];
+            //Steve
+            /* int32_t ratio = pos_err; */
             set_motor_ratio(i, ratio);
 
             d_position_errors[i] = d_pos_err;
             acc_position_errors[i] = i_err;
         }
     }
+  status_led(0);
 }
 
 void set_motor_state(uint8_t motor_index, uint8_t enable)
@@ -260,6 +266,7 @@ void set_motor_state(uint8_t motor_index, uint8_t enable)
 }
 
 void set_motor_ratio(uint8_t motor_index, float ratio)
+/* void set_motor_ratio(uint8_t motor_index, int32_t ratio) */
 {
     ratio = clip(ratio, -max_torque[motor_index], max_torque[motor_index]);
 
@@ -268,11 +275,13 @@ void set_motor_ratio(uint8_t motor_index, float ratio)
     {
         pulse_1 = 0;
         pulse_2 = (uint16_t)(ratio * 85.0);
+        /* pulse_2 = (uint16_t)(ratio * 85); */
     }
-    else 
+    else
     {
         pulse_1 = (uint16_t)(-ratio * 85.0);
-        pulse_2 = 0;
+      /* pulse_1 = (uint16_t)(-ratio * 85); */
+      pulse_2 = 0;
     }
 
     if (motor_index == 0)
@@ -302,7 +311,7 @@ void read_temperatures(float *temperatures)
     temperatures[2] = temp[1];
 }
 
-void update_and_check_temperatures() 
+void update_and_check_temperatures()
 {
     read_temperatures(temperatures);
 
@@ -322,7 +331,9 @@ void update_and_check_temperatures()
 volatile int32_t pos[10][3];
 volatile uint8_t pos_i = 0;
 
-#define INTEGRATION_LENGTH 10
+
+//Steve: this kind of breaks the position reading
+#define INTEGRATION_LENGTH 1
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -349,7 +360,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
             {
                 present_positions[i] -= p;
             }
-            else 
+            else
             {
                 present_positions[i] += p;
             }
