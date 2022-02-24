@@ -21,6 +21,8 @@ static volatile float pid[NB_MOTORS][3] = {0};
 static volatile int32_t d_position_errors[NB_MOTORS] = {0};
 static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
+static volatile int32_t zero[NB_MOTORS] = {0};
+
 static float temperatures[NB_MOTORS] = {0};
 static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
 
@@ -119,6 +121,19 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
     case ORBITA_PRESENT_POSITION:
         fill_read_status_with_int32((int32_t *)present_positions, 1, status);
         break;
+    case ORBITA_POSITION_ABSOLUTE:
+        {
+            AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+            AS5045.ReadAngle(angles);
+
+            int32_t tmp[NB_MOTORS] = {
+                (int32_t)angles[0].Bits.AngPos,
+                (int32_t)angles[2].Bits.AngPos,
+                (int32_t)angles[1].Bits.AngPos
+            };
+            fill_read_status_with_int32(tmp, 1, status);
+        }
+        break;
     case ORBITA_GOAL_POSITION:
         fill_read_status_with_int32((int32_t *)target_positions, 1, status);
         break;
@@ -136,6 +151,9 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
         float tmp[3] = {temperature_fan_trigger_threshold, temperature_fan_trigger_threshold, temperature_fan_trigger_threshold};
         fill_read_status_with_float(tmp, 1, status);
     }
+        break;
+    case ORBITA_ZERO:
+        fill_read_status_with_int32((int32_t *)zero, 1, status);
         break;
     default:
         status->error |= (1 << INSTRUCTION_ERROR);
@@ -166,6 +184,9 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         break;
     case ORBITA_PID:
         fill_write_status_with_float((float *)pid, coded_values, size, 3, status);
+        break;
+    case ORBITA_ZERO:
+        fill_write_status_with_int32((int32_t *)zero, coded_values, size, 1, status);
         break;
     default:
         status->error |= (1 << INSTRUCTION_ERROR);
