@@ -10,7 +10,6 @@
 #define NB_MOTORS 3
 
 #define DEFAULT_MAX_TORQUE 100.0
-// #define DEFAULT_MAX_TORQUE 100
 
 #define DEFAULT_P_GAIN 1.0
 #define DEFAULT_I_GAIN 0.0

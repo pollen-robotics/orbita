@@ -261,7 +261,6 @@ void set_motor_state(uint8_t motor_index, uint8_t enable)
 }
 
 void set_motor_ratio(uint8_t motor_index, float ratio)
-/* void set_motor_ratio(uint8_t motor_index, int32_t ratio) */
 {
     ratio = clip(ratio, -max_torque[motor_index], max_torque[motor_index]);
 
