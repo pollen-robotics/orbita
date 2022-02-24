@@ -1,2 +1,0 @@
-numpy==1.17.4
-pyquaternion==0.9.5
