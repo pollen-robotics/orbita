@@ -32,9 +32,10 @@ void rs485_switch_to_tx()
     {
         HAL_GPIO_WritePin(RS485_RE_GPIO_Port, RS485_RE_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(RS485_DE_GPIO_Port, RS485_DE_Pin, GPIO_PIN_SET);
-        HAL_Delay(1);
-        // for (uint8_t i = 0; i < 100; i++)
-        // asm("NOP");
+
+        for (uint32_t i = 0; i < 1500; i++) {
+            asm("NOP");
+        }
 
         communication_mode = TX;
     }

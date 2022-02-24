@@ -43,7 +43,6 @@ void Orbita_Init(void)
         pid[motor_index][2] = DEFAULT_D_GAIN;
 
         set_motor_state(motor_index, 0);
-        /* torques_enabled[motor_index] =1; */
     }
 
     rs485_wait_for_message_IT();
@@ -226,7 +225,6 @@ void setup_hardware(void)
 
 void update_motor_asserv()
 {
-  status_led(1);
   for (uint8_t i=0; i < NB_MOTORS; i++)
     {
         if (torques_enabled[i] == 1)
@@ -238,15 +236,12 @@ void update_motor_asserv()
             int32_t i_err = clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
             float ratio = (float)pos_err * pid[i][0] + (float)i_err * pid[i][1] + (float)d_pos_err * pid[i][2];
-            //Steve
-            /* int32_t ratio = pos_err; */
             set_motor_ratio(i, ratio);
 
             d_position_errors[i] = d_pos_err;
             acc_position_errors[i] = i_err;
         }
     }
-  status_led(0);
 }
 
 void set_motor_state(uint8_t motor_index, uint8_t enable)
@@ -275,13 +270,11 @@ void set_motor_ratio(uint8_t motor_index, float ratio)
     {
         pulse_1 = 0;
         pulse_2 = (uint16_t)(ratio * 85.0);
-        /* pulse_2 = (uint16_t)(ratio * 85); */
     }
     else
     {
         pulse_1 = (uint16_t)(-ratio * 85.0);
-      /* pulse_1 = (uint16_t)(-ratio * 85); */
-      pulse_2 = 0;
+        pulse_2 = 0;
     }
 
     if (motor_index == 0)
@@ -323,7 +316,7 @@ void update_and_check_temperatures()
             {
                 set_motor_state(m, 0);
             }
-            // current_error |= (1 << OVERHEATING_ERROR);
+            current_error |= (1 << OVERHEATING_ERROR);
         }
     }
 }
