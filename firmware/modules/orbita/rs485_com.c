@@ -165,8 +165,6 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
     {
         return;
     }
-
-    toggle_status_led();
     
     rs485_wait_for_message_IT();    
 }

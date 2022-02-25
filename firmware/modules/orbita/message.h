@@ -24,7 +24,10 @@ typedef enum {
     NONE_ERROR = 7,
 } error_t;
 
+uint8_t check_error_flag(uint8_t byte, error_t err);
 void set_error_flag(uint8_t *byte, error_t err);
+void clear_error_flag(uint8_t *byte, error_t err);
+
 
 typedef struct {
     message_type_t type;

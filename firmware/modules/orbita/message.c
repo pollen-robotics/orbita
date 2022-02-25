@@ -4,9 +4,19 @@
 
 #include "orbita.h"
 
+uint8_t check_error_flag(uint8_t byte, error_t err)
+{
+    return (byte >> (7 - err) & 1);
+}
+
 void set_error_flag(uint8_t *byte, error_t err)
 {
     *byte |= (1 << (7 - err));
+}
+
+void clear_error_flag(uint8_t *byte, error_t err)
+{
+    *byte &= ~(1 << (7 - err));
 }
 
 void fill_read_status_with_uint8(uint8_t *data, int nb, status_packet_t *p)

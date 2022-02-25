@@ -86,7 +86,7 @@ void Orbita_HandleMessage(instruction_packet_t *instr, uint8_t crc, status_packe
 
     if (instr->crc != crc)
     {
-        set_error_flag(status->error, CHECKSUM_ERROR);
+        set_error_flag(&status->error, CHECKSUM_ERROR);
     }
 
     switch (instr->type)
@@ -103,7 +103,7 @@ void Orbita_HandleMessage(instruction_packet_t *instr, uint8_t crc, status_packe
         break;
 
     default:
-        set_error_flag(status->error, INSTRUCTION_ERROR);
+        set_error_flag(&status->error, INSTRUCTION_ERROR);
         break;
     }
 }
@@ -156,7 +156,7 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
         fill_read_status_with_int32((int32_t *)zero, 1, status);
         break;
     default:
-        set_error_flag(status->error, INSTRUCTION_ERROR);
+        set_error_flag(&status->error, INSTRUCTION_ERROR);
         break;
     }
 }
@@ -189,7 +189,7 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         fill_write_status_with_int32((int32_t *)zero, coded_values, size, 1, status);
         break;
     default:
-        set_error_flag(status->error, INSTRUCTION_ERROR);
+        set_error_flag(&status->error, INSTRUCTION_ERROR);
         break;
     }
 }
@@ -332,11 +332,27 @@ void update_and_check_temperatures()
     {
         if (temperatures[i] > temperatures_shutdown[i])
         {
-            for (uint8_t m=0; m < NB_MOTORS; m++)
-            {
-                set_motor_state(m, 0);
-            }
+            // // WHAT TO DO ?
+            // for (uint8_t m=0; m < NB_MOTORS; m++)
+            // {
+            //     set_motor_state(m, 0);
+            // }
             set_error_flag(&current_error, OVERHEATING_ERROR);
+        }
+    }
+    if (check_error_flag(current_error, OVERHEATING_ERROR))
+    {
+        uint8_t has_cooled_down = 1;
+        for (uint8_t i=0; i < NB_MOTORS; i++)
+        {
+            if (temperatures[i] > temperature_fan_trigger_threshold)
+            {
+                has_cooled_down = 0;
+            }
+        }
+        if (has_cooled_down)
+        {
+            clear_error_flag(&current_error, OVERHEATING_ERROR);
         }
     }
 }
