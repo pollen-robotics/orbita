@@ -12,8 +12,12 @@ setup(
         'future',
         'numpy',
         'pyserial',
+        'pyquaternion',
         'scipy',
+        'sklearn',
     ],
+
+    package_data={'': ['mlpreg.obj']},
 
     author='Pollen Robotics',
     author_email='contact@pollen-robotics.com',
