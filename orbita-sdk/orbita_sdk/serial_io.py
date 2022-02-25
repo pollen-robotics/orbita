@@ -1,6 +1,6 @@
 """Orbita Serial Communication.
 
-This module implements the low-level communicaiton with Orbita acutators.
+This module implements the low-level communication with Orbita acutators.
 Most users should not need to access this level.
 
 The communication with the Orbita Actuator is done using serial communication.
