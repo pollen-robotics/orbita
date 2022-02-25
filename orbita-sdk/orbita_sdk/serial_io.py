@@ -11,7 +11,7 @@ Each message is detailed in the documentation of its associated method.
 The header, crc, and global message structure are respected such an Orbita can be connected to a Dynamixel buses (RS485) seamlessly.
 
 """
-from typing import Any
+from typing import Any, List, Tuple
 
 import logging
 import numpy as np
@@ -30,23 +30,44 @@ class Instruction(Enum):
     WRITE_DATA = 0x03
 
 
+class OrbitaError(Enum):
+    InputVoltage = 0
+    AngleLimit = 1
+    Overheating = 2
+    Range = 3
+    Checksum = 4
+    Overload = 5
+    Instruction = 6
+
+    @classmethod
+    def from_error_code(cls, err: np.uint8):
+        byte = bin(err)[2:]
+        byte = '0' * (8 - len(byte)) + byte
+        return [
+            cls(i) 
+            for i, bit in enumerate(byte) 
+            if bit == '1'
+        ]
+
+
 class OrbitaSerialIO:
     HEADER_SIZE = 4
 
-    def __init__(self, port, baudrate, timeout) -> None:
+    def __init__(self, port: str, baudrate: int, timeout: float) -> None:
         """Open the serial port."""
         self.s = serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
         self._logger = logging.getLogger(__name__)
         self._serial_lock = Lock()
 
-    def ping(self, id: np.uint8):
+    def ping(self, id: np.uint8) -> None:
         """Ping an Orbita with the given ID.
         
         Raises a TimeoutError if the ID does not respond.
         """
-        self._send_msg(id, bytearray([Instruction.PING.value]))
+        _, errors = self._send_msg(id, bytearray([Instruction.PING.value]))
+        return errors
 
-    def read(self, id: np.uint8, register: OrbitaRegister) -> Any:
+    def read(self, id: np.uint8, register: OrbitaRegister) -> Tuple[Any, List[OrbitaError]]:
         """Get the register value of the specified Orbita.
         
         The return values are expressed in the format specified by OrbitaRegister. 
@@ -61,7 +82,7 @@ class OrbitaSerialIO:
         Where PARAM* is the returned value coded as defined by https://docs.python.org/3/library/struct.html#format-characters
         """
         addr, datafmt, perm = register.value
-        msg = self._send_msg(id, bytearray([Instruction.READ_DATA.value, addr, 0x01]))
+        msg, errors = self._send_msg(id, bytearray([Instruction.READ_DATA.value, addr, 0x01]))
 
         if 'r' not in perm:
             raise ValueError(f'Register "{register.name}" is write only!')
@@ -71,9 +92,10 @@ class OrbitaSerialIO:
         val = list(struct.unpack(3 * datafmt, payload))
         if len(datafmt) > 1:
             val = np.array(val).reshape(len(datafmt), -1).tolist()
-        return val
+        
+        return errors, val
 
-    def write(self, id: np.uint8, register: OrbitaRegister, values):
+    def write(self, id: np.uint8, register: OrbitaRegister, values) -> List[OrbitaError]:
         """Set the register value of the specified Orbita.
         
         The given values must be expressed in the format specified by OrbitaRegister.
@@ -96,7 +118,8 @@ class OrbitaSerialIO:
             *np.array(values).flatten().tolist()
         )
             
-        self._send_msg(id, bytearray([Instruction.WRITE_DATA.value, addr]) + coded_values)
+        _, errors = self._send_msg(id, bytearray([Instruction.WRITE_DATA.value, addr]) + coded_values)
+        return errors
 
     def _send_msg(self, id: np.uint8, instr: bytes):
         with self._serial_lock:
@@ -121,13 +144,13 @@ class OrbitaSerialIO:
             self._logger.debug('<<< "{}"'.format(' '.join([hex(x) for x in msg])))
                 
             if self._compute_crc(msg[:-1]) != msg[-1]:
-                raise Exception('CRC ERROR')
+                return msg, [OrbitaError.Checksum]
 
-            err = msg[4]
-            if err != 0:
-                raise Exception('ERROR', err)
+            errors = OrbitaError.from_error_code(msg[4])
+            if errors:
+                self._logger.warning(f'Got error {[err for err in errors]} on Orbita "{id}"!')
                         
-            return msg
+            return msg, errors
 
     def _compute_crc(self, msg: bytes) -> np.uint8:
         return 255 - sum(msg[2:]) % 256
