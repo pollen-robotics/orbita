@@ -4,6 +4,11 @@
 
 #include "orbita.h"
 
+void set_error_flag(uint8_t *byte, error_t err)
+{
+    *byte |= (1 << (7 - err));
+}
+
 void fill_read_status_with_uint8(uint8_t *data, int nb, status_packet_t *p)
 {
     p->payload_size = sizeof(uint8_t) * NB_MOTORS * nb;

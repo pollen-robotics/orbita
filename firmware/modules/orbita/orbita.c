@@ -86,7 +86,7 @@ void Orbita_HandleMessage(instruction_packet_t *instr, uint8_t crc, status_packe
 
     if (instr->crc != crc)
     {
-        status_packet.error |= (1 << CHECKSUM_ERROR);
+        set_error_flag(status->error, CHECKSUM_ERROR);
     }
 
     switch (instr->type)
@@ -103,7 +103,7 @@ void Orbita_HandleMessage(instruction_packet_t *instr, uint8_t crc, status_packe
         break;
 
     default:
-        status->error |= (1 << INSTRUCTION_ERROR);
+        set_error_flag(status->error, INSTRUCTION_ERROR);
         break;
     }
 }
@@ -156,7 +156,7 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
         fill_read_status_with_int32((int32_t *)zero, 1, status);
         break;
     default:
-        status->error |= (1 << INSTRUCTION_ERROR);
+        set_error_flag(status->error, INSTRUCTION_ERROR);
         break;
     }
 }
@@ -189,7 +189,7 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         fill_write_status_with_int32((int32_t *)zero, coded_values, size, 1, status);
         break;
     default:
-        status->error |= (1 << INSTRUCTION_ERROR);
+        set_error_flag(status->error, INSTRUCTION_ERROR);
         break;
     }
 }
@@ -336,7 +336,7 @@ void update_and_check_temperatures()
             {
                 set_motor_state(m, 0);
             }
-            current_error |= (1 << OVERHEATING_ERROR);
+            set_error_flag(&current_error, OVERHEATING_ERROR);
         }
     }
 }
