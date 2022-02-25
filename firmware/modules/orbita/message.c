@@ -21,19 +21,19 @@ void clear_error_flag(uint8_t *byte, error_t err)
 
 void fill_read_status_with_uint8(uint8_t *data, int nb, status_packet_t *p)
 {
-    p->payload_size = sizeof(uint8_t) * NB_MOTORS * nb;
+    p->payload_size = sizeof(uint8_t) * nb;
     memcpy(p->payload, data, p->payload_size);
 }
 
 void fill_read_status_with_int32(int32_t *data, int nb, status_packet_t *p)
 {
-    p->payload_size = sizeof(int32_t) * NB_MOTORS * nb;
+    p->payload_size = sizeof(int32_t) * nb;
     memcpy(p->payload, data, p->payload_size);
 }
 
 void fill_read_status_with_float(float *data, int nb, status_packet_t *p)
 {
-    p->payload_size = sizeof(float) * NB_MOTORS * nb;
+    p->payload_size = sizeof(float) * nb;
     memcpy(p->payload, data, p->payload_size);
 }
 
@@ -42,7 +42,7 @@ void fill_write_status_with_uint8(
     uint8_t *coded_values, uint8_t size, uint8_t nb,
     status_packet_t *status)
 {
-    if (size != (NB_MOTORS * nb * sizeof(uint8_t)))
+    if (size != (nb * sizeof(uint8_t)))
     {
         status->error = INSTRUCTION_ERROR;
         return;
@@ -56,7 +56,7 @@ void fill_write_status_with_int32(
     uint8_t *coded_values, uint8_t size, uint8_t nb,
     status_packet_t *status)
 {
-    if (size != (NB_MOTORS * nb * sizeof(int32_t)))
+    if (size != (nb * sizeof(int32_t)))
     {
         status->error = INSTRUCTION_ERROR;
         return;
@@ -70,7 +70,7 @@ void fill_write_status_with_float(
     uint8_t *coded_values, uint8_t size, uint8_t nb,
     status_packet_t *status)
 {
-    if (size != (NB_MOTORS * nb * sizeof(float)))
+    if (size != (nb * sizeof(float)))
     {
         status->error = INSTRUCTION_ERROR;
         return;

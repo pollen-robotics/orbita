@@ -9,22 +9,22 @@
 
 #include "message.h"
 #include "rs485_com.h"
+#define DEFAULT_ORBITA_ID 40
 
 static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
-static volatile int32_t position_limits[NB_MOTORS][2] = {0};
 
 static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
 static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE};
 
-static volatile float pid[NB_MOTORS][3] = {0};
+static volatile float pid[3] = {0};
 static volatile int32_t d_position_errors[NB_MOTORS] = {0};
 static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
-static volatile int32_t zero[NB_MOTORS] = {0};
+static int32_t zero[NB_MOTORS] = {0};
 
 static float temperatures[NB_MOTORS] = {0};
-static float temperatures_shutdown[NB_MOTORS] = {DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE, DEFAULT_SHUTDOWN_TEMPERATURE};
+static float temperatures_shutdown = DEFAULT_SHUTDOWN_TEMPERATURE;
 
 static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
 
@@ -37,12 +37,9 @@ void Orbita_Init(void)
 
     for (uint8_t motor_index=0; motor_index < NB_MOTORS; motor_index++)
     {
-        position_limits[motor_index][0] = DEFAULT_POSITION_LOWER_LIMIT;
-        position_limits[motor_index][1] = DEFAULT_POSITION_UPPER_LIMIT;
-
-        pid[motor_index][0] = DEFAULT_P_GAIN;
-        pid[motor_index][1] = DEFAULT_I_GAIN;
-        pid[motor_index][2] = DEFAULT_D_GAIN;
+        pid[0] = DEFAULT_P_GAIN;
+        pid[1] = DEFAULT_I_GAIN;
+        pid[2] = DEFAULT_D_GAIN;
 
         set_motor_state(motor_index, 0);
     }
@@ -67,10 +64,10 @@ void Orbita_Loop(void)
 
     if (rs485_get_instruction_packet(&instruction_packet, &crc) == HAL_OK)
     {
-        if (instruction_packet.id == ORBITA_ID)
+        if (instruction_packet.id == id)
         {
             Orbita_HandleMessage(&instruction_packet, crc, &status_packet);
-            rs485_send_message_IT(ORBITA_ID, &status_packet);
+            rs485_send_message_IT(id, &status_packet);
         }
         else
         {
@@ -112,14 +109,11 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
 {
     switch (reg)
     {
-    case ORBITA_ANGLE_LIMIT:
-        fill_read_status_with_int32((int32_t *)position_limits, 2, status);
-        break;
     case ORBITA_TEMPERATURE_SHUTDOWN:
-        fill_read_status_with_float(temperatures_shutdown, 1, status);
+        fill_read_status_with_float(&temperatures_shutdown, 1, status);
         break;
     case ORBITA_PRESENT_POSITION:
-        fill_read_status_with_int32((int32_t *)present_positions, 1, status);
+        fill_read_status_with_int32((int32_t *)present_positions, NB_MOTORS, status);
         break;
     case ORBITA_POSITION_ABSOLUTE:
         {
@@ -131,29 +125,29 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status)
                 (int32_t)angles[2].Bits.AngPos,
                 (int32_t)angles[1].Bits.AngPos
             };
-            fill_read_status_with_int32(tmp, 1, status);
+            fill_read_status_with_int32(tmp, NB_MOTORS, status);
         }
         break;
     case ORBITA_GOAL_POSITION:
-        fill_read_status_with_int32((int32_t *)target_positions, 1, status);
+        fill_read_status_with_int32((int32_t *)target_positions, NB_MOTORS, status);
         break;
     case ORBITA_TORQUE_ENABLE:
-        fill_read_status_with_uint8((uint8_t *)torques_enabled, 1, status);
+        fill_read_status_with_uint8((uint8_t *)torques_enabled, NB_MOTORS, status);
         break;
     case ORBITA_PID:
         fill_read_status_with_float((float *)pid, 3, status);
         break;
     case ORBITA_TEMPERATURE:
-        fill_read_status_with_float(temperatures, 1, status);
+        fill_read_status_with_float(temperatures, NB_MOTORS, status);
         break;
     case ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD:
-    {
-        float tmp[3] = {temperature_fan_trigger_threshold, temperature_fan_trigger_threshold, temperature_fan_trigger_threshold};
-        fill_read_status_with_float(tmp, 1, status);
-    }
+        fill_read_status_with_float(&temperature_fan_trigger_threshold, 1, status);
         break;
     case ORBITA_ZERO:
-        fill_read_status_with_int32((int32_t *)zero, 1, status);
+        fill_read_status_with_int32((int32_t *)zero, NB_MOTORS, status);
+        break;
+    case ORBITA_ID:
+        fill_read_status_with_uint8(&id, 1, status);
         break;
     default:
         set_error_flag(&status->error, INSTRUCTION_ERROR);
@@ -165,18 +159,14 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
 {
     switch (reg)
     {
-        // TODO: check value range
-    case ORBITA_ANGLE_LIMIT:
-        fill_write_status_with_int32((int32_t *)position_limits, coded_values, size, 2, status);
-        break;
     case ORBITA_TEMPERATURE_SHUTDOWN:
-        fill_write_status_with_float(temperatures_shutdown, coded_values, size, 1, status);
+        fill_write_status_with_float(&temperatures_shutdown, coded_values, size, 1, status);
         break;
     case ORBITA_GOAL_POSITION:
-        fill_write_status_with_int32((int32_t *)target_positions, coded_values, size, 1, status);
+        fill_write_status_with_int32((int32_t *)target_positions, coded_values, size, NB_MOTORS, status);
         break;
     case ORBITA_TORQUE_ENABLE:
-        fill_write_status_with_uint8((uint8_t *)torques_enabled, coded_values, size, 1, status);
+        fill_write_status_with_uint8((uint8_t *)torques_enabled, coded_values, size, NB_MOTORS, status);
         for (uint8_t i=0; i < NB_MOTORS; i++)
         {
             set_motor_state(i, torques_enabled[i]);
@@ -186,7 +176,11 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         fill_write_status_with_float((float *)pid, coded_values, size, 3, status);
         break;
     case ORBITA_ZERO:
-        fill_write_status_with_int32((int32_t *)zero, coded_values, size, 1, status);
+        fill_write_status_with_int32((int32_t *)zero, coded_values, size, NB_MOTORS, status);
+        break;
+    case ORBITA_ID:
+        fill_write_status_with_uint8(&id, coded_values, size, 1, status);
+        // write_eeprom(ID_EEPROM_ADDRESS, sizeof(uint8_t), &id);
         break;
     default:
         set_error_flag(&status->error, INSTRUCTION_ERROR);
@@ -250,13 +244,13 @@ void update_motor_asserv()
     {
         if (torques_enabled[i] == 1)
         {
-            int32_t target = clip(target_positions[i], position_limits[i][0], position_limits[i][1]);
+            int32_t target = target_positions[i];
 
             int32_t pos_err = present_positions[i] - target;
             int32_t d_pos_err = (pos_err - d_position_errors[i]);
             int32_t i_err = clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR);
 
-            float ratio = (float)pos_err * pid[i][0] + (float)i_err * pid[i][1] + (float)d_pos_err * pid[i][2];
+            float ratio = (float)pos_err * pid[0] + (float)i_err * pid[1] + (float)d_pos_err * pid[2];
             set_motor_ratio(i, ratio);
 
             d_position_errors[i] = d_pos_err;
@@ -330,7 +324,7 @@ void update_and_check_temperatures()
 
     for (uint8_t i=0; i < NB_MOTORS; i++)
     {
-        if (temperatures[i] > temperatures_shutdown[i])
+        if (temperatures[i] > temperatures_shutdown)
         {
             // // WHAT TO DO ?
             // for (uint8_t m=0; m < NB_MOTORS; m++)

@@ -71,7 +71,7 @@ class OrbitaSerialIO:
         """Get the register value of the specified Orbita.
         
         The return values are expressed in the format specified by OrbitaRegister. 
-        A value for each motor is returned (disk order TODO).
+        A value for each motor is returned (disk order top, middle, bottom).
 
         A READ_DATA instruction message is defined as:
         [0xff, 0xff, ORBITA_ID, 4, READ_DATA, REG_ADDR, REG_LENGTH, CRC]
@@ -81,7 +81,7 @@ class OrbitaSerialIO:
         [0xff, 0xff, ORBITA_ID, 5 + NB_PARAM, ERR, PARAM1, PARAM2, ..., CRC]
         Where PARAM* is the returned value coded as defined by https://docs.python.org/3/library/struct.html#format-characters
         """
-        addr, datafmt, perm = register.value
+        addr, datafmt, nb_elem, perm = register.value
         msg, errors = self._send_msg(id, bytearray([Instruction.READ_DATA.value, addr, 0x01]))
 
         if 'r' not in perm:
@@ -89,17 +89,21 @@ class OrbitaSerialIO:
 
         payload = msg[5:-1]
         
-        val = list(struct.unpack(3 * datafmt, payload))
-        if len(datafmt) > 1:
-            val = np.array(val).reshape(len(datafmt), -1).tolist()
+        val = list(struct.unpack(datafmt * nb_elem, payload))
+
+        if nb_elem > 1:
+            val = np.array(val).reshape(len(datafmt), nb_elem).tolist()
         
+        if len(val) == 1:
+            val = val[0]
+
         return errors, val
 
     def write(self, id: np.uint8, register: OrbitaRegister, values) -> List[OrbitaError]:
         """Set the register value of the specified Orbita.
         
         The given values must be expressed in the format specified by OrbitaRegister.
-        A value for each motor must be given (disk order TODO).
+        A value for each motor must be given (disk order top, middle, bottom).
 
         A WRITE_DATA instruction message is defined as:
         [0xff, 0xff, ORBITA_ID, 3 + NB_PARAM, WRITE_DATA, REG_ADDR, PARAM1, PARAM2, ..., CRC]
@@ -108,13 +112,13 @@ class OrbitaSerialIO:
         [0xff, 0xff, ORBITA_ID, 2, ERR, CRC]
         """
 
-        addr, datafmt, perm = register.value
+        addr, datafmt, nb_elem, perm = register.value
 
         if 'w' not in perm:
             raise ValueError(f'Register "{register.name}" is read only!')
 
         coded_values = struct.pack(
-            datafmt * 3,
+            datafmt * nb_elem,
             *np.array(values).flatten().tolist()
         )
             

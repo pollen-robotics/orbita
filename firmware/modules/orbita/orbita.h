@@ -5,7 +5,6 @@
 
 #include "message.h"
 
-#define ORBITA_ID 40
 
 #define NB_MOTORS 3
 
@@ -26,7 +25,7 @@
 
 typedef enum
 {
-    ORBITA_ANGLE_LIMIT = 0,
+    // ORBITA_ANGLE_LIMIT = 0,
     ORBITA_TEMPERATURE_SHUTDOWN = 1,
 
     ORBITA_PRESENT_POSITION = 10,
@@ -50,6 +49,8 @@ typedef enum
     ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD = 51,
 
     // ORBITA_POSITION_PUB_PERIOD = 60,
+
+    ORBITA_ID = 70,
 
 } orbita_register_t;
 
