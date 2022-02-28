@@ -22,7 +22,7 @@ void LuosHAL_FlashEraseLuosMemoryInfo(void)
     FLASH_EraseInitTypeDef s_eraseinit;
 
     s_eraseinit.TypeErase = FLASH_TYPEERASE_PAGES;
-    s_eraseinit.Page      = NB_OF_PAGE - 1;
+    s_eraseinit.Page      = NB_OF_PAGE - 3;
     s_eraseinit.NbPages   = 1;
 
     // Erase Page
@@ -31,9 +31,9 @@ void LuosHAL_FlashEraseLuosMemoryInfo(void)
     HAL_FLASH_Lock();
     for(int i=0;i<5;i++)
     {
-      status_led(1);
+    //   status_led(1);
       HAL_Delay(100);
-      status_led(0);
+    //   status_led(0);
       HAL_Delay(100);
     }
 
@@ -54,8 +54,10 @@ void LuosHAL_FlashWriteLuosMemoryInfo(uint32_t addr, uint16_t size, uint8_t *dat
     LuosHAL_FlashEraseLuosMemoryInfo();
 
     // Then add input data into backuped value on RAM
-    uint32_t RAMaddr = (addr - ADDRESS_ALIASES_FLASH);
-    memcpy(&page_backup[RAMaddr], data, size);
+    // uint32_t RAMaddr = (addr - ADDRESS_ALIASES_FLASH);
+    // memcpy(&page_backup[RAMaddr], data, size);
+    page_backup[0] = 12;
+    page_backup[1] = 13;
 
     // and copy it into flash
     HAL_FLASH_Unlock();
@@ -83,5 +85,5 @@ void LuosHAL_FlashWriteLuosMemoryInfo(uint32_t addr, uint16_t size, uint8_t *dat
  ******************************************************************************/
 void LuosHAL_FlashReadLuosMemoryInfo(uint32_t addr, uint16_t size, uint8_t *data)
 {
-    memcpy(data, (void *)(addr), size);
+    memcpy(data, (void *)(ADDRESS_ALIASES_FLASH + addr), size);
 }
