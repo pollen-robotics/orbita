@@ -72,14 +72,14 @@ class OrbitaSDK:
         
         The PID is similar for all 3 motors for API simplicity.
         """
-        return tuple(self._get_register(OrbitaRegister.PID)[0])
+        return self._get_register(OrbitaRegister.PID)
 
     def set_pid(self, p: float, i: float, d: float):
         """Set new PID gains.
         
         The PID is similar for all 3 motors for API simplicity.
         """
-        self._set_register(OrbitaRegister.PID, [[p, i, d] * 3])
+        self._set_register(OrbitaRegister.PID, (p, i, d))
 
     def get_current_temperature(self) -> Tuple[float, float, float]:
         """Get the current temperature (in degree celsius) of each disk motor.
