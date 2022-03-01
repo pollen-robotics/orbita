@@ -10,6 +10,8 @@ class OrbitaRegister(Enum):
     - nb of element
     - its permission (r, w, or rw)
 
+    Please note that TemperatureShutdown, PID, Zero and Id are stored in Orbita's internal memory and will be kept even when you turn off the actuator.
+
     """
     TemperatureShutdown = (1, 'f', 1, 'rw')
     PresentPosition = (10, 'i', 3, 'r')

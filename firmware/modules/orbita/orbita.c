@@ -38,6 +38,7 @@ static uint8_t current_error = 0;
 #define EEPROM_ADDR_ID 1 // (1 * sizeof(uint8_t) + 1 --> 2)
 #define EEPROM_ADDR_PID 10 // (3 * sizeof(float) + 1 --> 13)
 #define EEPROM_ADDR_ZERO 30 // (NB_MOTORS * sizeof(int32_t) + 1 --> 13)
+#define EEPROM_ADDR_TEMP_SHUTDOWN 50 // sizeof(float) + 1
 
 
 void Orbita_Init(void)
@@ -48,6 +49,7 @@ void Orbita_Init(void)
     read_eeprom(EEPROM_ADDR_ID, sizeof(uint8_t), &id);
     read_eeprom(EEPROM_ADDR_PID, 3 * sizeof(float), (uint8_t *)pid);
     read_eeprom(EEPROM_ADDR_ZERO, 3 * sizeof(int32_t), (uint8_t *)zero);
+    read_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float), (uint8_t *)&temperatures_shutdown);
 
     for (uint8_t motor_index=0; motor_index < NB_MOTORS; motor_index++)
     {
@@ -171,6 +173,7 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
     {
     case ORBITA_TEMPERATURE_SHUTDOWN:
         fill_write_status_with_float(&temperatures_shutdown, coded_values, size, 1, status);
+        write_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float), (uint8_t *)&temperatures_shutdown);
         break;
     case ORBITA_GOAL_POSITION:
         fill_write_status_with_int32((int32_t *)target_positions, coded_values, size, NB_MOTORS, status);
