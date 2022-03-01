@@ -9,7 +9,11 @@
 
 #include "message.h"
 #include "rs485_com.h"
+#include "fake_eeprom.h"
+
 #define DEFAULT_ORBITA_ID 40
+
+static uint8_t id = DEFAULT_ORBITA_ID;
 
 static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
@@ -17,7 +21,7 @@ static volatile int32_t target_positions[NB_MOTORS] = {0};
 static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
 static volatile float max_torque[NB_MOTORS] = {DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE};
 
-static volatile float pid[3] = {0};
+static volatile float pid[3] = {DEFAULT_P_GAIN, DEFAULT_I_GAIN, DEFAULT_D_GAIN};
 static volatile int32_t d_position_errors[NB_MOTORS] = {0};
 static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
 
@@ -31,16 +35,22 @@ static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER
 static uint8_t current_error = 0;
 
 
+#define EEPROM_ADDR_ID 1 // (1 * sizeof(uint8_t) + 1 --> 2)
+#define EEPROM_ADDR_PID 10 // (3 * sizeof(float) + 1 --> 13)
+#define EEPROM_ADDR_ZERO 30 // (NB_MOTORS * sizeof(int32_t) + 1 --> 13)
+
+
 void Orbita_Init(void)
 {
     setup_hardware();
 
+    // If there is no custom value stored in EEPROM, the default value will be kept
+    read_eeprom(EEPROM_ADDR_ID, sizeof(uint8_t), &id);
+    read_eeprom(EEPROM_ADDR_PID, 3 * sizeof(float), (uint8_t *)pid);
+    read_eeprom(EEPROM_ADDR_ZERO, 3 * sizeof(int32_t), (uint8_t *)zero);
+
     for (uint8_t motor_index=0; motor_index < NB_MOTORS; motor_index++)
     {
-        pid[0] = DEFAULT_P_GAIN;
-        pid[1] = DEFAULT_I_GAIN;
-        pid[2] = DEFAULT_D_GAIN;
-
         set_motor_state(motor_index, 0);
     }
 
@@ -174,13 +184,15 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         break;
     case ORBITA_PID:
         fill_write_status_with_float((float *)pid, coded_values, size, 3, status);
+        write_eeprom(EEPROM_ADDR_PID, 3 * sizeof(float), (uint8_t *)pid);
         break;
     case ORBITA_ZERO:
         fill_write_status_with_int32((int32_t *)zero, coded_values, size, NB_MOTORS, status);
+        write_eeprom(EEPROM_ADDR_ZERO, NB_MOTORS * sizeof(int32_t), (uint8_t *)zero);
         break;
     case ORBITA_ID:
         fill_write_status_with_uint8(&id, coded_values, size, 1, status);
-        // write_eeprom(ID_EEPROM_ADDRESS, sizeof(uint8_t), &id);
+        write_eeprom(EEPROM_ADDR_ID, sizeof(uint8_t), &id);
         break;
     default:
         set_error_flag(&status->error, INSTRUCTION_ERROR);

@@ -25,6 +25,12 @@ void fill_read_status_with_uint8(uint8_t *data, int nb, status_packet_t *p)
     memcpy(p->payload, data, p->payload_size);
 }
 
+void fill_read_status_with_uint32(uint32_t *data, int nb, status_packet_t *p)
+{
+    p->payload_size = sizeof(uint32_t) * nb;
+    memcpy(p->payload, data, p->payload_size);
+}
+
 void fill_read_status_with_int32(int32_t *data, int nb, status_packet_t *p)
 {
     p->payload_size = sizeof(int32_t) * nb;
