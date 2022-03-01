@@ -1,13 +1,16 @@
-"""Orbita Control SDK.
+"""The SDK lets you control an Orbita 3 dof actuator in Python.
 
-The SDK lets you control an Orbita 3Dof actuator.
+It more details, with the SDK you can:
 
-It allows you to:
-- enable/disable the torque
-- get its current position - you can either read the 3 disks position (in rads) or the plate 3D orientation (as quaternion)
+- **enable/disable the torque** of all 3 motors
+- get Orbita's current position - you can either read the 3 **disks position** (in rads) or the plate **3D orientation** (as quaternion)
 - set a new target position - you can either use disk position (in rads) or 3D orientation of the plate (as quaternion)
-- get/set PID gains use for the control of all 3 motors
+- get/set PID gains (same for all 3 motors)
 - get each motor temperature (in degree celsius)
+
+Communication with Orbita is rather fast (about ~1ms per command). So you can **control it at a few hundred Hz** (get its position and send a new target). Internal **PID controller runs at 10kHz**.
+
+.. warning:: Communication performance may vary a lot depending on your serial driver! In particular, if you are using Windows, make sure to decrease the driver latency to 1ms. On Linux/Mac OS default driver should work fine.
 
 """
 

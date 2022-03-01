@@ -17,6 +17,10 @@ setup(
         'sklearn',
     ],
 
+    extras_require={
+        'doc': ['sphinx'],
+    },
+
     package_data={'': ['mlpreg.obj']},
 
     author='Pollen Robotics',
