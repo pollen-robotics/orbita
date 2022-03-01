@@ -21,4 +21,5 @@ class OrbitaRegister(Enum):
     PID = (31, 'fff', 1, 'rw')
     Temperature = (32, 'f', 3, 'r')
     Zero = (40, 'i', 3, 'rw')
+    Recalibrate = (41, '', 0, 'w')
     Id = (70, 'B', 1, 'rw')

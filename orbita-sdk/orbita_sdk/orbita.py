@@ -21,14 +21,16 @@ from .serial_io import OrbitaError, OrbitaSerialIO
 
 
 class OrbitaSDK:
-    reduction = 52 / 24
-    resolution = 4096
+    _reduction = 52 / 24
+    _resolution = 4096
 
     def __init__(self, port: str, baudrate: int = 500000, timeout=0.1, id: int = 40) -> None:
         """Open the serial communication."""
         self._io = OrbitaSerialIO(port=port, baudrate=baudrate, timeout=timeout)
         self._id = id
         self._kin = OrbitaKinematicModel()
+
+        self.calibrate()
 
     def enable_torque(self) -> None:
         """Enable the torque on all 3 motors."""
@@ -101,11 +103,28 @@ class OrbitaSDK:
         # TODO
         pass
 
+    # Offset and conversion
+
+    def calibrate(self):
+        zero = self._get_register(OrbitaRegister.Zero)
+        pos = self._get_register(OrbitaRegister.AbsolutePosition)
+
+        offset = []
+
+        for z, p in zip(zero, pos):
+            possibilities = [z, z + self._resolutiom, z - self._resolution]
+            distances = [abs(p - poss) for poss in possibilities]
+            closest = np.argmin(distances)
+            offset.append(possibilities[closest])
+
+        self._offset = np.array(offset)
+        self._set_register(OrbitaRegister.Recalibrate)
+
     def _pos_to_rad(self, pos):
-        return tuple(2 * np.pi * np.array(pos) / (self.reduction * self.resolution))
+        pos = np.array(pos) - self._offset
+        return tuple(2 * np.pi * pos / (self._reduction * self._resolution))
 
     def _rad_to_pos(self, rad):
-        return tuple(
-            int(p)
-            for p in (np.array(rad) * self.reduction * self.resolution) / (2 * np.pi)
-        )
+        pos = (np.array(rad) * self._reduction * self._resolution) / (2 * np.pi)
+        pos += self._offset
+        return tuple(int(p) for p in pos)

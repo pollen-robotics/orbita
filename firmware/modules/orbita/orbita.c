@@ -193,6 +193,20 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values, uint8_
         fill_write_status_with_int32((int32_t *)zero, coded_values, size, NB_MOTORS, status);
         write_eeprom(EEPROM_ADDR_ZERO, NB_MOTORS * sizeof(int32_t), (uint8_t *)zero);
         break;
+    case ORBITA_RECALIBRATE:
+    {
+        AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+        AS5045.ReadAngle(angles);
+
+        present_positions[0] = (int32_t)angles[0].Bits.AngPos;
+        present_positions[1] = (int32_t)angles[2].Bits.AngPos;
+        present_positions[2] = (int32_t)angles[1].Bits.AngPos;
+
+        TIM2->CNT = 0;
+        TIM3->CNT = 0;
+        TIM4->CNT = 0;
+    }
+        break;
     case ORBITA_ID:
         fill_write_status_with_uint8(&id, coded_values, size, 1, status);
         write_eeprom(EEPROM_ADDR_ID, sizeof(uint8_t), &id);
