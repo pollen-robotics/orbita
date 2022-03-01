@@ -56,6 +56,7 @@ int8_t parse_message_instruction(uint8_t *recv_buff, uint8_t length, instruction
 
 
 void fill_read_status_with_uint8(uint8_t *data, int nb, status_packet_t *p);
+void fill_read_status_with_uint32(uint32_t *data, int nb, status_packet_t *p);
 void fill_read_status_with_int32(int32_t *data, int nb, status_packet_t *p);
 void fill_read_status_with_float(float *data, int nb, status_packet_t *p);
 
