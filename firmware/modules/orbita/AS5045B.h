@@ -13,7 +13,9 @@
 
 #define Nb_AS5045B_Chip 3 // Daisy Chain list - Nb AS5045B Chip
 
-#define Default_SSI_delay 5000
+#define Default_SSI_delay 30
+// #define Default_SSI_delay 5000
+
 /// Do not touch below - Default functions tested
 #define SSI_Delay AS5045B_Delay(Default_SSI_delay);
 #define SSI_SS_High HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_SET);

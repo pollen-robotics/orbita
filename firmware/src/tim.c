@@ -428,12 +428,12 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef* tim_encoderHandle)
   /* USER CODE END TIM2_MspInit 0 */
     /* TIM2 clock enable */
     __HAL_RCC_TIM2_CLK_ENABLE();
-  
+
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**TIM2 GPIO Configuration    
+    /**TIM2 GPIO Configuration
     PA0     ------> TIM2_CH1
     PA1     ------> TIM2_CH2
-    PA5     ------> TIM2_ETR 
+    PA5     ------> TIM2_ETR
     */
     GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -460,11 +460,11 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef* tim_encoderHandle)
   /* USER CODE END TIM3_MspInit 0 */
     /* TIM3 clock enable */
     __HAL_RCC_TIM3_CLK_ENABLE();
-  
+
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    /**TIM3 GPIO Configuration    
+    /**TIM3 GPIO Configuration
     PB4     ------> TIM3_CH1
-    PB5     ------> TIM3_CH2 
+    PB5     ------> TIM3_CH2
     */
     GPIO_InitStruct.Pin = ENC2_TIM3_CH1_Pin|ENC2_TIM3_CH2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -484,12 +484,12 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef* tim_encoderHandle)
   /* USER CODE END TIM4_MspInit 0 */
     /* TIM4 clock enable */
     __HAL_RCC_TIM4_CLK_ENABLE();
-  
+
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    /**TIM4 GPIO Configuration    
+    /**TIM4 GPIO Configuration
     PB3     ------> TIM4_ETR
     PB6     ------> TIM4_CH1
-    PB7     ------> TIM4_CH2 
+    PB7     ------> TIM4_CH2
     */
     GPIO_InitStruct.Pin = ENC3_TIM4_ETR_Pin|ENC3_TIM4_CH1_Pin|ENC3_TIM4_CH2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -513,9 +513,9 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 
   /* USER CODE END TIM1_MspPostInit 0 */
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    /**TIM1 GPIO Configuration    
+    /**TIM1 GPIO Configuration
     PC0     ------> TIM1_CH1
-    PC1     ------> TIM1_CH2 
+    PC1     ------> TIM1_CH2
     */
     GPIO_InitStruct.Pin = MOT1_IN1_Pin|MOT1_IN2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -533,11 +533,11 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
   /* USER CODE BEGIN TIM8_MspPostInit 0 */
 
   /* USER CODE END TIM8_MspPostInit 0 */
-  
+
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    /**TIM8 GPIO Configuration    
+    /**TIM8 GPIO Configuration
     PC6     ------> TIM8_CH1
-    PC7     ------> TIM8_CH2 
+    PC7     ------> TIM8_CH2
     */
     GPIO_InitStruct.Pin = MOT2_IN1_Pin|MOT2_IN2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -555,12 +555,12 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
   /* USER CODE BEGIN TIM20_MspPostInit 0 */
 
   /* USER CODE END TIM20_MspPostInit 0 */
-  
+
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    /**TIM20 GPIO Configuration    
+    /**TIM20 GPIO Configuration
     PC2     ------> TIM20_CH2
-    PB2     ------> TIM20_CH1 
+    PB2     ------> TIM20_CH1
     */
     GPIO_InitStruct.Pin = MOT3_IN2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -642,11 +642,11 @@ void HAL_TIM_Encoder_MspDeInit(TIM_HandleTypeDef* tim_encoderHandle)
   /* USER CODE END TIM2_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_TIM2_CLK_DISABLE();
-  
-    /**TIM2 GPIO Configuration    
+
+    /**TIM2 GPIO Configuration
     PA0     ------> TIM2_CH1
     PA1     ------> TIM2_CH2
-    PA5     ------> TIM2_ETR 
+    PA5     ------> TIM2_ETR
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0|GPIO_PIN_1|ENC1_TIM2_ETR_Pin);
 
@@ -661,10 +661,10 @@ void HAL_TIM_Encoder_MspDeInit(TIM_HandleTypeDef* tim_encoderHandle)
   /* USER CODE END TIM3_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_TIM3_CLK_DISABLE();
-  
-    /**TIM3 GPIO Configuration    
+
+    /**TIM3 GPIO Configuration
     PB4     ------> TIM3_CH1
-    PB5     ------> TIM3_CH2 
+    PB5     ------> TIM3_CH2
     */
     HAL_GPIO_DeInit(GPIOB, ENC2_TIM3_CH1_Pin|ENC2_TIM3_CH2_Pin);
 
@@ -679,11 +679,11 @@ void HAL_TIM_Encoder_MspDeInit(TIM_HandleTypeDef* tim_encoderHandle)
   /* USER CODE END TIM4_MspDeInit 0 */
     /* Peripheral clock disable */
     __HAL_RCC_TIM4_CLK_DISABLE();
-  
-    /**TIM4 GPIO Configuration    
+
+    /**TIM4 GPIO Configuration
     PB3     ------> TIM4_ETR
     PB6     ------> TIM4_CH1
-    PB7     ------> TIM4_CH2 
+    PB7     ------> TIM4_CH2
     */
     HAL_GPIO_DeInit(GPIOB, ENC3_TIM4_ETR_Pin|ENC3_TIM4_CH1_Pin|ENC3_TIM4_CH2_Pin);
 
@@ -691,7 +691,7 @@ void HAL_TIM_Encoder_MspDeInit(TIM_HandleTypeDef* tim_encoderHandle)
 
   /* USER CODE END TIM4_MspDeInit 1 */
   }
-} 
+}
 
 /* USER CODE BEGIN 1 */
 
