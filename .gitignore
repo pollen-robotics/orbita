@@ -121,3 +121,6 @@ firmware/Startup/*
 firmware/*.bak
 firmware/Drivers/**
 firmware/.gitignore
+
+# Sphinx
+orbita-sdk/docs/_build/**
