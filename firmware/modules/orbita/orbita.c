@@ -18,7 +18,7 @@ static uint8_t id = DEFAULT_ORBITA_ID;
 
 static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
-static volatile int32_t prev_target_positions[NB_MOTORS] = {0};
+static volatile int32_t prev_positions_d[NB_MOTORS] = {0};
 
 //Steve: fake zero...
 static volatile int32_t offset_positions[NB_MOTORS] = {0};
@@ -275,52 +275,46 @@ void update_motor_asserv() {
   for (uint8_t i = 0; i < NB_MOTORS; i++) {
     if (torques_enabled[i] == 1) {
 
-      int32_t Kc=pid[0];
-      int32_t Ti=pid[1];
-      int32_t Td=pid[2];
+      float Kc=pid[0];
+      float Ti=pid[1];
+      float Td=pid[2];
 
       int32_t target = target_positions[i];
-      int32_t d_input=target-prev_target_positions[i];
-      prev_target_positions[i]=target;
+      int32_t d_pv=present_positions[i]-prev_positions_d[i];
+      prev_positions_d[i]=present_positions[i];
 
-      int32_t pos_err = present_positions[i] - target;
+      /* int32_t pos_err = present_positions[i] - target; */
+      int32_t pos_err = target-present_positions[i];
+
+      /* pos_err=-pos_err; */
 
       int32_t d_pos_err = (pos_err - prev_position_errors[i]);
 
-      int32_t i_err =
-          clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR);
-
-
-      /* acc_position_errors[i]+=(pid[1]*pos_err); */
-      /* acc_position_errors[i]=clip(acc_position_errors[i], -MAX_ACC_ERR, MAX_ACC_ERR); */
-
-      /* int32_t i_err=acc_position_errors[i]; */
-
-      /* float ratio = (float)pos_err * pid[0] + (float)i_err * pid[1] + */
-      /*               (float)d_pos_err * pid[2]; */
-
-      /* float ratio = (float)pos_err * pid[0] + (float)i_err*0.001 - (float)d_input * pid[2]/0.001; */
+      int32_t i_err = acc_position_errors[i] + pos_err;
+          /* clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR); */
 
 
       float iterm=0.0;
       float dterm=0.0;
       if(abs(Ti)>0.0)
-        iterm=(1.0/((float)Ti))*(float)i_err*0.001;
+        {
+          iterm=(1.0/Ti)*(float)(i_err)*0.001;
+          iterm=clip(iterm, -MAX_ACC_ERR, MAX_ACC_ERR);
+        }
+      /* if(abs(Td)>0.0) */
+      /*   dterm=Td*d_pos_err/0.001; */
       if(abs(Td)>0.0)
-        dterm=(float)Td*d_pos_err/0.001;
-
-      float ratio = (float) Kc*((float)pos_err + iterm + dterm);
+        dterm=-Td*(float)(d_pv)/0.001; //Simple trick, the derivative of the error is equal to minus the derivative of the pos (it is more stable to the change in target).
 
 
-      /* if(i==2) */
-      /*   set_motor_ratio(i, ratio); */
-      /* else */
-      /*   set_motor_ratio(i, ratio*2.0); */
+      float ratio = Kc*((float)pos_err + iterm + dterm);
 
       set_motor_ratio(i, ratio);
 
       prev_position_errors[i] = pos_err;
-      acc_position_errors[i] = i_err;
+      acc_position_errors[i] += iterm;
+      acc_position_errors[i]= clip(acc_position_errors[i],-MAX_ACC_ERR, MAX_ACC_ERR);
+
     }
   }
 }
@@ -342,14 +336,27 @@ void set_motor_ratio(uint8_t motor_index, float ratio) {
 
   uint16_t pulse_1, pulse_2;
   /* uint8_t dir=0; */
+  /* if (ratio > 0) { */
+  /*   pulse_1 = 0; */
+  /*   pulse_2 = (uint16_t)(ratio * 85.0); */
+
+  /* } else { */
+  /*   pulse_1 = (uint16_t)(-ratio * 85.0); */
+  /*   pulse_2 = 0; */
+  /* } */
+
+
+  //If we compute the error with the correct sign
   if (ratio > 0) {
-    pulse_1 = 0;
-    pulse_2 = (uint16_t)(ratio * 85.0);
+    pulse_1 = (uint16_t)(ratio * 85.0);
+    pulse_2 = 0;
 
   } else {
-    pulse_1 = (uint16_t)(-ratio * 85.0);
-    pulse_2 = 0;
+    pulse_1 = 0;
+    pulse_2 = (uint16_t)(-ratio * 85.0);
   }
+
+
 
   /* if (ratio > 0) { */
   /*   pulse_1 = (uint16_t)(ratio * 85.0); */
