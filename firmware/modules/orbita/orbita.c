@@ -10,6 +10,7 @@
 #include "fake_eeprom.h"
 #include "message.h"
 #include "rs485_com.h"
+#include "stdlib.h"
 
 #define DEFAULT_ORBITA_ID 40
 
@@ -308,15 +309,15 @@ void update_motor_asserv() {
       if(abs(Td)>0.0)
         dterm=(float)Td*d_pos_err/0.001;
 
-      float ratio = (float) pid[0]*((float)pos_err + iterm + dterm);
+      float ratio = (float) Kc*((float)pos_err + iterm + dterm);
 
 
-      if(i==2)
-        set_motor_ratio(i, ratio);
-      else
-        set_motor_ratio(i, ratio*2.0);
+      /* if(i==2) */
+      /*   set_motor_ratio(i, ratio); */
+      /* else */
+      /*   set_motor_ratio(i, ratio*2.0); */
 
-      /* set_motor_ratio(i, ratio); */
+      set_motor_ratio(i, ratio);
 
       prev_position_errors[i] = pos_err;
       acc_position_errors[i] = i_err;
@@ -340,21 +341,36 @@ void set_motor_ratio(uint8_t motor_index, float ratio) {
   ratio = clip(ratio, -max_torque[motor_index], max_torque[motor_index]);
 
   uint16_t pulse_1, pulse_2;
+  /* uint8_t dir=0; */
   if (ratio > 0) {
     pulse_1 = 0;
     pulse_2 = (uint16_t)(ratio * 85.0);
+
   } else {
     pulse_1 = (uint16_t)(-ratio * 85.0);
     pulse_2 = 0;
   }
 
+  /* if (ratio > 0) { */
+  /*   pulse_1 = (uint16_t)(ratio * 85.0); */
+  /*   dir=1; */
+
+  /* } else { */
+  /*   pulse_1 = (uint16_t)(ratio * 85.0); */
+  /*   dir = 0; */
+  /* } */
+
+
   if (motor_index == 0) {
+   /* HAL_GPIO_WritePin(MOT2_IN2_GPIO_Port, MOT2_IN2_Pin, dir); */
     TIM8->CCR1 = pulse_1;
     TIM8->CCR2 = pulse_2;
   } else if (motor_index == 1) {
+    /* HAL_GPIO_WritePin(MOT1_IN2_GPIO_Port, MOT1_IN2_Pin, dir); */
     TIM1->CCR1 = pulse_1;
     TIM1->CCR2 = pulse_2;
   } else {
+    /* HAL_GPIO_WritePin(MOT3_IN2_GPIO_Port, MOT3_IN2_Pin, dir); */
     TIM20->CCR1 = pulse_1;
     TIM20->CCR2 = pulse_2;
   }
@@ -396,19 +412,6 @@ void update_and_check_temperatures() {
 }
 
 
-int32_t encoder_compute_delta(uint16_t a, uint16_t b)
-{
-    int32_t delta = b - a;
-
-    if (delta > 0x1fff) {
-        delta -= 0x4000;
-    }
-    if (delta < -0x1fff) {
-        delta += 0x4000;
-    }
-
-    return delta;
-}
 
 
 /* volatile int32_t pos[10][3]; */
