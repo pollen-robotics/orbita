@@ -16,35 +16,31 @@
 
 static uint8_t id = DEFAULT_ORBITA_ID;
 
+// For position control
 static volatile int32_t present_positions[NB_MOTORS] = {0};
 static volatile int32_t target_positions[NB_MOTORS] = {0};
 static volatile int32_t prev_positions_d[NB_MOTORS] = {0};
-
+static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
+static volatile float pid[3] = {DEFAULT_P_GAIN, DEFAULT_I_GAIN, DEFAULT_D_GAIN};
 //Steve: fake zero...
 static volatile int32_t offset_positions[NB_MOTORS] = {0};
 static volatile int32_t prev_positions[NB_MOTORS] = {0};
-static volatile int32_t absolute_positions[NB_MOTORS] = {0};
+static int32_t zero[NB_MOTORS] = {0};
 
-
+// Torque
 static volatile uint8_t torques_enabled[NB_MOTORS] = {0};
 static volatile float max_torque[NB_MOTORS] = {
     DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE, DEFAULT_MAX_TORQUE};
 
-static volatile float pid[3] = {DEFAULT_P_GAIN, DEFAULT_I_GAIN, DEFAULT_D_GAIN};
-static volatile int32_t prev_position_errors[NB_MOTORS] = {0};
-static volatile int32_t acc_position_errors[NB_MOTORS] = {0};
-
-
-
-static int32_t zero[NB_MOTORS] = {0};
-
+// Temperature
 static float temperatures[NB_MOTORS] = {0};
 static float temperatures_shutdown = DEFAULT_SHUTDOWN_TEMPERATURE;
-
 static float temperature_fan_trigger_threshold =
     DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
 
+// Error
 static uint8_t current_error = 0;
+
 
 #define EEPROM_ADDR_ID 1             // (1 * sizeof(uint8_t) + 1 --> 2)
 #define EEPROM_ADDR_PID 10           // (3 * sizeof(float) + 1 --> 13)
@@ -78,8 +74,7 @@ static uint8_t crc;
 void Orbita_Loop(void) {
   static uint32_t last_temp_published = 0;
   if ((HAL_GetTick() - last_temp_published) >= TEMPERATURE_CHECK_PERIOD) {
-    // FIXME: TO ENABLE
-    /* update_and_check_temperatures(); */
+    update_and_check_temperatures();
     last_temp_published = HAL_GetTick();
   }
 
@@ -130,18 +125,6 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status) {
     fill_read_status_with_int32((int32_t *)present_positions, NB_MOTORS,
                                 status);
     break;
-  case ORBITA_POSITION_ABSOLUTE: {
-    /* AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0}; */
-    /* AS5045.ReadAngle(angles); */
-
-    /* int32_t tmp[NB_MOTORS] = {(int32_t)angles[0].Bits.AngPos, */
-    /*                           (int32_t)angles[2].Bits.AngPos, */
-    /*                           (int32_t)angles[1].Bits.AngPos}; */
-    /* fill_read_status_with_int32(tmp, NB_MOTORS, status); */
-    fill_read_status_with_int32(absolute_positions, NB_MOTORS, status);
-
-
-  } break;
   case ORBITA_GOAL_POSITION:
     fill_read_status_with_int32((int32_t *)target_positions, NB_MOTORS, status);
     break;
@@ -242,23 +225,13 @@ void setup_hardware(void) {
   AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
   AS5045.ReadAngle(angles);
 
-  // Steve: do not read init value so we don't need to handle the zero
-  /* present_positions[0] = (int32_t)angles[0].Bits.AngPos; */
-  /* present_positions[1] = (int32_t)angles[2].Bits.AngPos; */
-  /* present_positions[2] = (int32_t)angles[1].Bits.AngPos; */
   offset_positions[0] = (int32_t)angles[0].Bits.AngPos;
   offset_positions[1] = (int32_t)angles[2].Bits.AngPos;
   offset_positions[2] = (int32_t)angles[1].Bits.AngPos;
 
-  prev_positions[0] = (int32_t)angles[0].Bits.AngPos;
-  prev_positions[1] = (int32_t)angles[2].Bits.AngPos;
-  prev_positions[2] = (int32_t)angles[1].Bits.AngPos;
-
-
-  /* absolute_positions_positions[0] = (int32_t)angles[0].Bits.AngPos; */
-  /* absolute_positions_positions[1] = (int32_t)angles[2].Bits.AngPos; */
-  /* absolute_positions_positions[2] = (int32_t)angles[1].Bits.AngPos; */
-
+  for (uint8_t i=0; i < NB_MOTORS; i++) {
+    prev_positions[i] = offset_positions[i];
+  }
 
   // enable ABI mode on sensors
   HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_RESET);
@@ -269,52 +242,39 @@ void setup_hardware(void) {
 }
 
 void update_motor_asserv() {
-
-
-
   for (uint8_t i = 0; i < NB_MOTORS; i++) {
     if (torques_enabled[i] == 1) {
 
-      float Kc=pid[0];
-      float Ti=pid[1];
-      float Td=pid[2];
+      float Kc = pid[0];
+      float Ti = pid[1];
+      float Td = pid[2];
 
       int32_t target = target_positions[i];
-      int32_t d_pv=present_positions[i]-prev_positions_d[i];
-      prev_positions_d[i]=present_positions[i];
+      int32_t d_pv = present_positions[i] - prev_positions_d[i];
+      prev_positions_d[i] = present_positions[i];
 
-      /* int32_t pos_err = present_positions[i] - target; */
       int32_t pos_err = target-present_positions[i];
-
-      /* pos_err=-pos_err; */
-
-      int32_t d_pos_err = (pos_err - prev_position_errors[i]);
-
       int32_t i_err = acc_position_errors[i] + pos_err;
-          /* clip(acc_position_errors[i] + pos_err, -MAX_ACC_ERR, MAX_ACC_ERR); */
 
+      float iterm = 0.0;
+      float dterm = 0.0;
+      if(abs(Ti) > 0.0)
+      {
+        iterm = (1.0 / Ti) * (float)(i_err) * 0.001;
+        iterm = clip(iterm, -MAX_ACC_ERR, MAX_ACC_ERR);
+      }
+      if(abs(Td) > 0.0)
+      {
+        // Simple trick, the derivative of the error is equal to minus the derivative of the pos (it is more stable to the change in target).
+        dterm = -Td * (float)(d_pv) / 0.001; 
+      }
 
-      float iterm=0.0;
-      float dterm=0.0;
-      if(abs(Ti)>0.0)
-        {
-          iterm=(1.0/Ti)*(float)(i_err)*0.001;
-          iterm=clip(iterm, -MAX_ACC_ERR, MAX_ACC_ERR);
-        }
-      /* if(abs(Td)>0.0) */
-      /*   dterm=Td*d_pos_err/0.001; */
-      if(abs(Td)>0.0)
-        dterm=-Td*(float)(d_pv)/0.001; //Simple trick, the derivative of the error is equal to minus the derivative of the pos (it is more stable to the change in target).
-
-
-      float ratio = Kc*((float)pos_err + iterm + dterm);
+      float ratio = Kc * ((float)pos_err + iterm + dterm);
 
       set_motor_ratio(i, ratio);
 
-      prev_position_errors[i] = pos_err;
       acc_position_errors[i] += iterm;
-      acc_position_errors[i]= clip(acc_position_errors[i],-MAX_ACC_ERR, MAX_ACC_ERR);
-
+      acc_position_errors[i] = clip(acc_position_errors[i], -MAX_ACC_ERR, MAX_ACC_ERR);
     }
   }
 }
@@ -335,18 +295,8 @@ void set_motor_ratio(uint8_t motor_index, float ratio) {
   ratio = clip(ratio, -max_torque[motor_index], max_torque[motor_index]);
 
   uint16_t pulse_1, pulse_2;
-  /* uint8_t dir=0; */
-  /* if (ratio > 0) { */
-  /*   pulse_1 = 0; */
-  /*   pulse_2 = (uint16_t)(ratio * 85.0); */
 
-  /* } else { */
-  /*   pulse_1 = (uint16_t)(-ratio * 85.0); */
-  /*   pulse_2 = 0; */
-  /* } */
-
-
-  //If we compute the error with the correct sign
+  // If we compute the error with the correct sign
   if (ratio > 0) {
     pulse_1 = (uint16_t)(ratio * 85.0);
     pulse_2 = 0;
@@ -355,18 +305,6 @@ void set_motor_ratio(uint8_t motor_index, float ratio) {
     pulse_1 = 0;
     pulse_2 = (uint16_t)(-ratio * 85.0);
   }
-
-
-
-  /* if (ratio > 0) { */
-  /*   pulse_1 = (uint16_t)(ratio * 85.0); */
-  /*   dir=1; */
-
-  /* } else { */
-  /*   pulse_1 = (uint16_t)(ratio * 85.0); */
-  /*   dir = 0; */
-  /* } */
-
 
   if (motor_index == 0) {
    /* HAL_GPIO_WritePin(MOT2_IN2_GPIO_Port, MOT2_IN2_Pin, dir); */
@@ -418,62 +356,40 @@ void update_and_check_temperatures() {
   }
 }
 
-
-
-
-/* volatile int32_t pos[10][3]; */
-volatile int16_t inc[3];
-volatile uint8_t pos_i = 0;
-volatile uint8_t abs_i = 0;
-volatile uint8_t inc_i = 0;
-
-volatile int16_t nb_turn[3]={0,0,0};
+volatile int16_t nb_turn[3] = {0, 0, 0};
 
 // Steve: this kind of breaks the position reading
-#define INTEGRATION_LENGTH 1
 #define INC_LENGTH 10
-#define ABSOLUTE_LENGTH 10
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   // This will be called every 100µs
-
+  static volatile uint8_t inc_i = 0;
 
   inc_i++;
-  if(inc_i==INC_LENGTH) //1kHz
+
+  if (inc_i == INC_LENGTH) //1kHz
   {
-
-    inc[0] = (int16_t)TIM2->CNT;
-    inc[1] = (int16_t)TIM3->CNT;
-    inc[2] = (int16_t)TIM4->CNT;
-
-
     AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
     AS5045.ReadAngle(angles);
 
-    int32_t tmp[NB_MOTORS] = {(int32_t)angles[0].Bits.AngPos,
+    int32_t tmp[NB_MOTORS] = {
+      (int32_t)angles[0].Bits.AngPos,
       (int32_t)angles[2].Bits.AngPos,
-      (int32_t)angles[1].Bits.AngPos};
-
+      (int32_t)angles[1].Bits.AngPos
+    };
 
 
     for (uint8_t i = 0; i < NB_MOTORS; i++) {
-
-      /* if (i == 0) { */
-      /*   present_positions[i] -= inc[i]; */
-      /* } else { */
-      /*   present_positions[i] += inc[i]; */
-      /* } */
-
-
-      if (tmp[i] < prev_positions[i] - 500 )
+      if (tmp[i] < prev_positions[i] - 500)
+      {
         nb_turn[i]++;
-      else if (tmp[i] > prev_positions[i] + 500 )
+      }
+      else if (tmp[i] > prev_positions[i] + 500) {
         nb_turn[i]--;
+      }
 
-      prev_positions[i]=tmp[i];
-      absolute_positions[i]=tmp[i]+4095*nb_turn[i] -offset_positions[i];
-      present_positions[i]=absolute_positions[i];
-
+      prev_positions[i] = tmp[i];
+      present_positions[i] = tmp[i] + 4095 * nb_turn[i] - offset_positions[i];
     }
 
     TIM2->CNT = 0;
@@ -481,8 +397,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     TIM4->CNT = 0;
 
     update_motor_asserv();
-    inc_i=0;
+    inc_i = 0;
   }
-
-
 }
