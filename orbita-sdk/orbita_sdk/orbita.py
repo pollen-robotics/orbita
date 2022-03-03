@@ -8,7 +8,7 @@ It more details, with the SDK you can:
 - get/set PID gains (same for all 3 motors)
 - get each motor temperature (in degree celsius)
 
-Communication with Orbita is rather fast (about ~1ms per command). So you can **control it at a few hundred Hz** (get its position and send a new target). Internal **PID controller runs at 10kHz**.
+Communication with Orbita is rather fast (about ~1ms per command). So you can **control it at a few hundred Hz** (get its position and send a new target). Internal **PID controller runs at 1kHz**.
 
 .. warning:: Communication performance may vary a lot depending on your serial driver! In particular, if you are using Windows, make sure to decrease the driver latency to 1ms. On Linux/Mac OS default driver should work fine.
 
