@@ -15,7 +15,6 @@ class OrbitaRegister(Enum):
     """
     TemperatureShutdown = (1, 'f', 1, 'rw')
     PresentPosition = (10, 'i', 3, 'r')
-    AbsolutePosition = (13, 'i', 3, 'r')
     GoalPosition = (20, 'i', 3, 'rw')
     TorqueEnable = (30, '?', 3, 'rw')
     PID = (31, 'fff', 1, 'rw')
