@@ -17,6 +17,7 @@ Communication with Orbita is rather fast (about ~1ms per command). So you can **
 from typing import Any, Tuple
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from .kinematics import OrbitaKinematicModel
 from .register import OrbitaRegister
@@ -26,6 +27,9 @@ from .serial_io import OrbitaError, OrbitaSerialIO
 class OrbitaSDK:
     reduction = 52 / 24
     resolution = 4096
+
+    _max_roll = 0.7
+    _max_pitch = 0.7
 
     def __init__(self, port: str, baudrate: int = 500000, timeout=0.1, id: int = 40) -> None:
         """Open the serial communication."""
@@ -68,6 +72,10 @@ class OrbitaSDK:
         
         The analytical inverse kinematics is used behind the scene to compute required disk position. Computation should take less than a ms on an average computer.
         """
+        roll, pitch, _ = Rotation.from_quat(q).as_euler('xyz')
+        if np.abs(roll) > self._max_roll or np.abs(pitch) > self._max_pitch:
+            raise ValueError('Given quaternion out of range (should be with roll in [-0.7, 0.7] and pitch in [-0.7, 0.7] rads)')
+
         self.set_target_disk_position(self._kin.inverse_kinematics(q))
 
     def get_pid(self) -> Tuple[float, float, float]:
