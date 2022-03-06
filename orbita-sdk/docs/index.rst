@@ -3,20 +3,37 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Orbita SDK's documentation
-==========================
 
-.. automodule:: orbita_sdk.orbita
+Orbita's docs
+=============
 
-A full example of the SDK usage can be found as a Jupyter notebook here: `Demo.ipynb <TODO>`_
-It details API uses and let you control Orbita's orientation live.
+Table of Contents
+-----------------
 
+.. toctree:: 
+   :maxdepth: 2
 
+   control
+   advanced_topic
 
+Introduction
+------------
 
-Indices and tables
-==================
+Orbita is a 3D parallel joint designed by `Pollen-Robotics <https://pollen-robotics.com>`_.
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+This actuator was developped to:
+
+- provide **full control of the plate** at the top - 3D rotation on a same point,
+- and combine the torque of the **three motors used in parallel** for efficiency.
+
+.. image:: _static/orbita_frame.jpg
+   :width: 35%
+   :align: center
+
+The Orbita actuator embeds an electronic board that controls the three motors via a PID controller and gives access to temperature and extra information through :ref:`RS485 communication <RS485>`. 
+
+It requires a 12V power supply.
+
+This documentation will guide you in :ref:`HowToControl` using our :ref:`PythonSDK`. This will allow you to simply start make Orbita move. :ref:`AdvancedTopics` will also be approached.
+
+For more information on the Orbita's design, you can check `this medium post <https://medium.com/pollen-robotics/orbita-is-turning-heads-literally-d10d378550e2>`_.

@@ -18,7 +18,7 @@ setup(
     ],
 
     extras_require={
-        'doc': ['sphinx'],
+        'doc': ['sphinx', 'sphinx_book_theme'],
     },
 
     package_data={'': ['mlpreg.obj']},
