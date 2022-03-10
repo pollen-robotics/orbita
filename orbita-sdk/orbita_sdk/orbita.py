@@ -70,6 +70,8 @@ class OrbitaSDK:
         self._id = id
         self._kin = OrbitaKinematicModel()
 
+        self._calibrate()
+
     def enable_torque(self):
         """Enable the torque on all 3 motors."""
         self._set_register(OrbitaRegister.GoalPosition, self._get_register(OrbitaRegister.PresentPosition))
@@ -91,6 +93,7 @@ class OrbitaSDK:
 
         :param target_position: Disks target positions (in rads), in the following order (top, middle, bottom).
         """
+        print(self._rad_to_pos(target_position))
         self._set_register(OrbitaRegister.GoalPosition, self._rad_to_pos(target_position))
 
     def get_current_orientation(self) -> np.ndarray:
@@ -155,11 +158,33 @@ class OrbitaSDK:
         # TODO
         pass
 
+    def _calibrate(self):
+        def set_offset(raw_zero: int, raw_pos: int):
+            """Set the correct offset depending on the hardware zero and the disk starting position."""
+            possibilities = [
+                raw_zero,
+                raw_zero + self.resolution,
+                raw_zero - self.resolution,
+            ]
+            distances = [abs(raw_pos - poss) for poss in possibilities]
+            closest = np.argmin(distances)
+            return possibilities[closest]
+
+        pos = self._get_register(OrbitaRegister.AbsolutePosition)
+        zero = self._get_register(OrbitaRegister.Zero)
+        self._offset = np.array([set_offset(z, p) for z, p in zip(zero, pos)])
+        print(pos)
+        print(zero)
+        print(self._offset)
+
+        self._set_register(OrbitaRegister.Recalibrate, ())
+
     def _pos_to_rad(self, pos):
-        return tuple(2 * np.pi * np.array(pos) / (self.reduction * self.resolution))
+        pos = np.array(pos) - self._offset
+        return tuple(2 * np.pi * pos / (self.reduction * self.resolution))
 
     def _rad_to_pos(self, rad):
         return tuple(
             int(p)
             for p in (np.array(rad) * self.reduction * self.resolution) / (2 * np.pi)
-        )
+        ) + self._offset

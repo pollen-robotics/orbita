@@ -125,6 +125,19 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status) {
     fill_read_status_with_int32((int32_t *)present_positions, NB_MOTORS,
                                 status);
     break;
+  case ORBITA_POSITION_ABSOLUTE:
+  {
+    AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+    AS5045.ReadAngle(angles);
+
+    int32_t tmp[NB_MOTORS];
+    tmp[0] = (int32_t)angles[0].Bits.AngPos;
+    tmp[1] = (int32_t)angles[2].Bits.AngPos;
+    tmp[2] = (int32_t)angles[1].Bits.AngPos;
+    fill_read_status_with_int32(tmp, NB_MOTORS, status);
+  }
+  break;
+
   case ORBITA_GOAL_POSITION:
     fill_read_status_with_int32((int32_t *)target_positions, NB_MOTORS, status);
     break;
@@ -182,6 +195,19 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values,
     write_eeprom(EEPROM_ADDR_ZERO, NB_MOTORS * sizeof(int32_t),
                  (uint8_t *)zero);
     break;
+  case ORBITA_RECALIBRATE:
+  {
+    AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+    AS5045.ReadAngle(angles);
+
+    prev_positions[0] = (int32_t)angles[0].Bits.AngPos;
+    prev_positions[1] = (int32_t)angles[2].Bits.AngPos;
+    prev_positions[2] = (int32_t)angles[1].Bits.AngPos;
+    target_positions[0] = (int32_t)angles[0].Bits.AngPos;
+    target_positions[1] = (int32_t)angles[2].Bits.AngPos;
+    target_positions[2] = (int32_t)angles[1].Bits.AngPos;
+  }
+    break;
   case ORBITA_ID:
     fill_write_status_with_uint8(&id, coded_values, size, 1, status);
     write_eeprom(EEPROM_ADDR_ID, sizeof(uint8_t), &id);
@@ -225,13 +251,25 @@ void setup_hardware(void) {
   AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
   AS5045.ReadAngle(angles);
 
-  offset_positions[0] = (int32_t)angles[0].Bits.AngPos;
-  offset_positions[1] = (int32_t)angles[2].Bits.AngPos;
-  offset_positions[2] = (int32_t)angles[1].Bits.AngPos;
+  // offset_positions[0] = (int32_t)angles[0].Bits.AngPos;
+  // offset_positions[1] = (int32_t)angles[2].Bits.AngPos;
+  // offset_positions[2] = (int32_t)angles[1].Bits.AngPos;
 
-  for (uint8_t i=0; i < NB_MOTORS; i++) {
-    prev_positions[i] = offset_positions[i];
-  }
+  prev_positions[0] = (int32_t)angles[0].Bits.AngPos;
+  prev_positions[1] = (int32_t)angles[2].Bits.AngPos;
+  prev_positions[2] = (int32_t)angles[1].Bits.AngPos;
+
+  target_positions[0] = (int32_t)angles[0].Bits.AngPos;
+  target_positions[1] = (int32_t)angles[2].Bits.AngPos;
+  target_positions[2] = (int32_t)angles[1].Bits.AngPos;
+
+  offset_positions[0] = 0;
+  offset_positions[1] = 0;
+  offset_positions[2] = 0;
+
+  // for (uint8_t i=0; i < NB_MOTORS; i++) {
+    // prev_positions[i] = offset_positions[i];
+  // }
 
   // enable ABI mode on sensors
   HAL_GPIO_WritePin(AS5045B_SS_GPIO_Port, AS5045B_SS_Pin, GPIO_PIN_RESET);
@@ -253,7 +291,7 @@ void update_motor_asserv() {
       int32_t d_pv = present_positions[i] - prev_positions_d[i];
       prev_positions_d[i] = present_positions[i];
 
-      int32_t pos_err = target-present_positions[i];
+      int32_t pos_err = target - present_positions[i];
       int32_t i_err = acc_position_errors[i] + pos_err;
 
       float iterm = 0.0;
@@ -377,7 +415,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       (int32_t)angles[2].Bits.AngPos,
       (int32_t)angles[1].Bits.AngPos
     };
-
 
     for (uint8_t i = 0; i < NB_MOTORS; i++) {
       if (tmp[i] < prev_positions[i] - 500)
