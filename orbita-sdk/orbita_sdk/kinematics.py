@@ -188,3 +188,36 @@ class OrbitaKinematicModel(object):
             return Quaternion(1, 0, 0, 0)
 
         return Quaternion(axis=V, radians=alpha)
+
+    def _eq(self, X, Y, Z):
+        R = self.R
+        Pc = self.Pc_z
+        C = self.Cp_z
+
+        d1 = (
+            R**2 * X[2]**2 +
+            R**2 * Z[2]**2 -
+            C[2]**2 + 2 * C[2] * Pc[2] - Pc[2]**2
+        )
+        if d1 < 0:
+            raise ValueError('math domain error')
+
+        d1 = np.sqrt(d1)
+
+        x11 = R * X[2] - d1
+        x12 = R * X[2] + d1
+        x2 = R * Z[2] + C[2] - Pc[2]
+
+        sol1 = 2 * np.arctan2(x11, x2)
+        sol2 = 2 * np.arctan2(x12, x2)
+
+        if 0 <= np.rad2deg(sol1) <= 180:
+            q3 = sol1
+        else:
+            q3 = sol2
+
+        q1 = np.arctan2(
+            Z[1] * np.cos(q3) + X[1] * np.sin(q3),
+            Z[0] * np.cos(q3) + X[0] * np.sin(q3),
+        )
+        return q3, q1
