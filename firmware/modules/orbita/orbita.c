@@ -125,6 +125,19 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status) {
     fill_read_status_with_int32((int32_t *)present_positions, NB_MOTORS,
                                 status);
     break;
+  case ORBITA_POSITION_ABSOLUTE:
+    {
+      AbsAng_struct_t angles[Nb_AS5045B_Chip] = {0};
+      AS5045.ReadAngle(angles);
+
+      int32_t tmp[3];
+      tmp[0] = (int32_t)angles[0].Bits.AngPos;
+      tmp[1] = (int32_t)angles[2].Bits.AngPos;
+      tmp[2] = (int32_t)angles[1].Bits.AngPos;
+
+      fill_read_status_with_int32(tmp, NB_MOTORS, status);
+    }
+    break;
   case ORBITA_GOAL_POSITION:
     fill_read_status_with_int32((int32_t *)target_positions, NB_MOTORS, status);
     break;
