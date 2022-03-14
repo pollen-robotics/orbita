@@ -10,9 +10,9 @@
 
 #define DEFAULT_MAX_TORQUE 100.0
 
-#define DEFAULT_P_GAIN 0.5
-#define DEFAULT_I_GAIN 0.0
-#define DEFAULT_D_GAIN 0.0
+#define DEFAULT_P_GAIN 0.15
+#define DEFAULT_I_GAIN 0.025
+#define DEFAULT_D_GAIN 0.0165
 
 // #define MAX_ACC_ERR 65535
 #define MAX_ACC_ERR 10000
