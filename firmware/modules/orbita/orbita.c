@@ -35,18 +35,17 @@ static volatile float max_torque[NB_MOTORS] = {
 // Temperature
 static float temperatures[NB_MOTORS] = {0};
 static float temperatures_shutdown = DEFAULT_SHUTDOWN_TEMPERATURE;
-#define COOLDOWN_REQUIRED 10.0
-static float temperature_fan_trigger_threshold =
-    DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
+static float temperatures_alarm_error = DEFAULT_ALARM_TEMPERATURE;
+static float temperature_fan_trigger_threshold = DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
 
 // Error
 static uint8_t current_error = 0;
 
-
-#define EEPROM_ADDR_ID 1             // (1 * sizeof(uint8_t) + 1 --> 2)
-#define EEPROM_ADDR_PID 10           // (3 * sizeof(float) + 1 --> 13)
-#define EEPROM_ADDR_ZERO 30          // (NB_MOTORS * sizeof(int32_t) + 1 --> 13)
-#define EEPROM_ADDR_TEMP_SHUTDOWN 50 // sizeof(float) + 1
+#define EEPROM_ADDR_ID 1                // (1 * sizeof(uint8_t) + 1 --> 2)
+#define EEPROM_ADDR_PID 10              // (3 * sizeof(float) + 1 --> 13)
+#define EEPROM_ADDR_ZERO 30             // (NB_MOTORS * sizeof(int32_t) + 1 --> 13)
+#define EEPROM_ADDR_TEMP_SHUTDOWN 50    // sizeof(float) + 1 --> 5
+#define EEPROM_ADDR_TEMP_ALARM 55       // sizeof(float) + 1 --> 5
 #define EEPROM_ADDR_FAN_TEMP_TRIGGER 60 // sizeof(float) + 1
 
 void Orbita_Init(void) {
@@ -57,8 +56,8 @@ void Orbita_Init(void) {
   read_eeprom(EEPROM_ADDR_ID, sizeof(uint8_t), &id);
   read_eeprom(EEPROM_ADDR_PID, 3 * sizeof(float), (uint8_t *)pid);
   read_eeprom(EEPROM_ADDR_ZERO, 3 * sizeof(int32_t), (uint8_t *)zero);
-  read_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float),
-              (uint8_t *)&temperatures_shutdown);
+  read_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float), (uint8_t *)&temperatures_shutdown);
+  read_eeprom(EEPROM_ADDR_TEMP_ALARM, sizeof(float), (uint8_t *)&temperatures_alarm_error);
   read_eeprom(EEPROM_ADDR_FAN_TEMP_TRIGGER, sizeof(float), (uint8_t *)&temperature_fan_trigger_threshold);
 
   for (uint8_t motor_index = 0; motor_index < NB_MOTORS; motor_index++) {
@@ -124,6 +123,9 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status) {
   case ORBITA_TEMPERATURE_SHUTDOWN:
     fill_read_status_with_float(&temperatures_shutdown, 1, status);
     break;
+  case ORBITA_TEMPERATURE_ALARM_ERROR:
+    fill_read_status_with_float(&temperatures_alarm_error, 1, status);
+    break;
   case ORBITA_PRESENT_POSITION:
     fill_read_status_with_int32((int32_t *)present_positions, NB_MOTORS,
                                 status);
@@ -172,10 +174,12 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values,
                             uint8_t size, status_packet_t *status) {
   switch (reg) {
   case ORBITA_TEMPERATURE_SHUTDOWN:
-    fill_write_status_with_float(&temperatures_shutdown, coded_values, size, 1,
-                                 status);
-    write_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float),
-                 (uint8_t *)&temperatures_shutdown);
+    fill_write_status_with_float(&temperatures_shutdown, coded_values, size, 1, status);
+    write_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float), (uint8_t *)&temperatures_shutdown);
+    break;
+  case ORBITA_TEMPERATURE_ALARM_ERROR:
+    fill_write_status_with_float(&temperatures_alarm_error, coded_values, size, 1, status);
+    write_eeprom(EEPROM_ADDR_TEMP_ALARM, sizeof(float), (uint8_t *)&temperatures_alarm_error);
     break;
   case ORBITA_GOAL_POSITION:
     fill_write_status_with_int32((int32_t *)target_positions, coded_values,
@@ -354,12 +358,29 @@ void read_temperatures(float *temperatures) {
 void update_and_check_temperatures() {
   read_temperatures(temperatures);
 
+  // Check if we should shutdown
+  for (uint8_t i = 0; i < NB_MOTORS; i++) {
+    if (temperatures[i] > temperatures_shutdown) {
+      // Turn off the torque and turn on the led
+      for (uint8_t m=0; m < NB_MOTORS; m++)
+      {
+          set_motor_state(m, 0);
+      }
+      status_led(1);
+
+      // Block forever, restart will be required
+      while (1) {}
+    }
+  }
+
+  // We are already overheating
   if (check_error_flag(current_error, OVERHEATING_ERROR)) {
     toggle_status_led();
 
+    // Check if we have cooled down enough
     uint8_t has_cooled_down = 1;
     for (uint8_t i = 0; i < NB_MOTORS; i++) {
-      if (temperatures[i] > (temperatures_shutdown - COOLDOWN_REQUIRED)) {
+      if (temperatures[i] >= temperatures_alarm_error) {
         has_cooled_down = 0;
       }
     }
@@ -367,15 +388,11 @@ void update_and_check_temperatures() {
       clear_error_flag(&current_error, OVERHEATING_ERROR);
       status_led(0);
     }
-  } else {
+  }
+  // Everything was ok, check if we should raise the alarm error
+  else {
     for (uint8_t i = 0; i < NB_MOTORS; i++) {
-      if (temperatures[i] > temperatures_shutdown) {
-        // Turn off the torque and turn on the led
-        for (uint8_t m=0; m < NB_MOTORS; m++)
-        {
-            set_motor_state(m, 0);
-        }
-        status_led(1);
+      if (temperatures[i] > temperatures_alarm_error) {
         set_error_flag(&current_error, OVERHEATING_ERROR);
       }
     }
