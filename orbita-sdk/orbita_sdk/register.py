@@ -21,4 +21,5 @@ class OrbitaRegister(Enum):
     PID = (31, 'fff', 1, 'rw')
     Temperature = (32, 'f', 3, 'r')
     Zero = (40, 'i', 3, 'rw')
+    FanTriggerTemperature = (51, 'f', 1, 'rw')
     Id = (70, 'B', 1, 'rw')

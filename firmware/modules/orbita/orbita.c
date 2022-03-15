@@ -46,17 +46,19 @@ static uint8_t current_error = 0;
 #define EEPROM_ADDR_PID 10           // (3 * sizeof(float) + 1 --> 13)
 #define EEPROM_ADDR_ZERO 30          // (NB_MOTORS * sizeof(int32_t) + 1 --> 13)
 #define EEPROM_ADDR_TEMP_SHUTDOWN 50 // sizeof(float) + 1
+#define EEPROM_ADDR_FAN_TEMP_TRIGGER 60 // sizeof(float) + 1
 
 void Orbita_Init(void) {
   setup_hardware();
 
-  // If there is no custom value stored in EEPROM, the default value will be
-  // kept
+  // If there is no custom value stored in EEPROM, 
+  // the default value will be kept
   read_eeprom(EEPROM_ADDR_ID, sizeof(uint8_t), &id);
   read_eeprom(EEPROM_ADDR_PID, 3 * sizeof(float), (uint8_t *)pid);
   read_eeprom(EEPROM_ADDR_ZERO, 3 * sizeof(int32_t), (uint8_t *)zero);
   read_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float),
               (uint8_t *)&temperatures_shutdown);
+  read_eeprom(EEPROM_ADDR_FAN_TEMP_TRIGGER, sizeof(float), (uint8_t)&temperature_fan_trigger_threshold);
 
   for (uint8_t motor_index = 0; motor_index < NB_MOTORS; motor_index++) {
     set_motor_state(motor_index, 0);
@@ -150,11 +152,11 @@ void Orbita_HandleReadData(orbita_register_t reg, status_packet_t *status) {
   case ORBITA_TEMPERATURE:
     fill_read_status_with_float(temperatures, NB_MOTORS, status);
     break;
-  case ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD:
-    fill_read_status_with_float(&temperature_fan_trigger_threshold, 1, status);
-    break;
   case ORBITA_ZERO:
     fill_read_status_with_int32((int32_t *)zero, NB_MOTORS, status);
+    break;
+  case ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD:
+    fill_read_status_with_float(&temperature_fan_trigger_threshold, 1, status);
     break;
   case ORBITA_ID:
     fill_read_status_with_uint8(&id, 1, status);
@@ -194,6 +196,11 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values,
                                  status);
     write_eeprom(EEPROM_ADDR_ZERO, NB_MOTORS * sizeof(int32_t),
                  (uint8_t *)zero);
+    break;
+  case ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD:
+    fill_write_status_with_float(&temperature_fan_trigger_threshold, coded_values, size, 1, status);
+    write_eeprom(EEPROM_ADDR_FAN_TEMP_TRIGGER, sizeof(float), (uint8_t)temperature_fan_trigger_threshold);
+    MAX31730.SetThr(temperature_fan_trigger_threshold);
     break;
   case ORBITA_ID:
     fill_write_status_with_uint8(&id, coded_values, size, 1, status);

@@ -49,8 +49,6 @@ typedef enum
     // ORBITA_FAN_STATE = 50,
     ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD = 51,
 
-    // ORBITA_POSITION_PUB_PERIOD = 60,
-
     ORBITA_ID = 70,
 
 } orbita_register_t;
