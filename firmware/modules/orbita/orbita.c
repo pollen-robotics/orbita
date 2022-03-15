@@ -367,6 +367,7 @@ void update_and_check_temperatures() {
           set_motor_state(m, 0);
       }
       status_led(1);
+      set_error_flag(&current_error, OVERHEATING_ERROR);
 
       return;
     }
