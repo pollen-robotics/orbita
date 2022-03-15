@@ -368,7 +368,6 @@ void update_and_check_temperatures() {
       }
       status_led(1);
       set_error_flag(&current_error, OVERHEATING_ERROR);
-
       return;
     }
   }
