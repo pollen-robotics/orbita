@@ -35,6 +35,7 @@ static volatile float max_torque[NB_MOTORS] = {
 // Temperature
 static float temperatures[NB_MOTORS] = {0};
 static float temperatures_shutdown = DEFAULT_SHUTDOWN_TEMPERATURE;
+#define COOLDOWN_REQUIRED 10.0
 static float temperature_fan_trigger_threshold =
     DEFAULT_TEMPERATURE_FAN_TRIGGER_THRESHOLD;
 
@@ -58,7 +59,7 @@ void Orbita_Init(void) {
   read_eeprom(EEPROM_ADDR_ZERO, 3 * sizeof(int32_t), (uint8_t *)zero);
   read_eeprom(EEPROM_ADDR_TEMP_SHUTDOWN, sizeof(float),
               (uint8_t *)&temperatures_shutdown);
-  read_eeprom(EEPROM_ADDR_FAN_TEMP_TRIGGER, sizeof(float), (uint8_t)&temperature_fan_trigger_threshold);
+  read_eeprom(EEPROM_ADDR_FAN_TEMP_TRIGGER, sizeof(float), (uint8_t *)&temperature_fan_trigger_threshold);
 
   for (uint8_t motor_index = 0; motor_index < NB_MOTORS; motor_index++) {
     set_motor_state(motor_index, 0);
@@ -199,7 +200,7 @@ void Orbita_HandleWriteData(orbita_register_t reg, uint8_t *coded_values,
     break;
   case ORBITA_FAN_TRIGGER_TEMPERATURE_THRESHOLD:
     fill_write_status_with_float(&temperature_fan_trigger_threshold, coded_values, size, 1, status);
-    write_eeprom(EEPROM_ADDR_FAN_TEMP_TRIGGER, sizeof(float), (uint8_t)temperature_fan_trigger_threshold);
+    write_eeprom(EEPROM_ADDR_FAN_TEMP_TRIGGER, sizeof(float), (uint8_t *)&temperature_fan_trigger_threshold);
     MAX31730.SetThr(temperature_fan_trigger_threshold);
     break;
   case ORBITA_ID:
@@ -353,25 +354,30 @@ void read_temperatures(float *temperatures) {
 void update_and_check_temperatures() {
   read_temperatures(temperatures);
 
-  for (uint8_t i = 0; i < NB_MOTORS; i++) {
-    if (temperatures[i] > temperatures_shutdown) {
-      // // WHAT TO DO ?
-      // for (uint8_t m=0; m < NB_MOTORS; m++)
-      // {
-      //     set_motor_state(m, 0);
-      // }
-      set_error_flag(&current_error, OVERHEATING_ERROR);
-    }
-  }
   if (check_error_flag(current_error, OVERHEATING_ERROR)) {
+    toggle_status_led();
+
     uint8_t has_cooled_down = 1;
     for (uint8_t i = 0; i < NB_MOTORS; i++) {
-      if (temperatures[i] > temperature_fan_trigger_threshold) {
+      if (temperatures[i] > (temperatures_shutdown - COOLDOWN_REQUIRED)) {
         has_cooled_down = 0;
       }
     }
-    if (has_cooled_down) {
+    if (has_cooled_down == 1) {
       clear_error_flag(&current_error, OVERHEATING_ERROR);
+      status_led(0);
+    }
+  } else {
+    for (uint8_t i = 0; i < NB_MOTORS; i++) {
+      if (temperatures[i] > temperatures_shutdown) {
+        // Turn off the torque and turn on the led
+        for (uint8_t m=0; m < NB_MOTORS; m++)
+        {
+            set_motor_state(m, 0);
+        }
+        status_led(1);
+        set_error_flag(&current_error, OVERHEATING_ERROR);
+      }
     }
   }
 }
