@@ -1,4 +1,0 @@
-.. _RS485:
-
-Low-level communication protocol
-================================

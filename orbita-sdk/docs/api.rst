@@ -3,10 +3,9 @@
 APIs
 ----
 
-.. toctree::
-    :maxdepth: 4
+:mod:`orbita_sdk`
+=================
 
-    api.orbita_sdk
-    api.rs485
+.. automodule:: orbita_sdk.orbita
 
 

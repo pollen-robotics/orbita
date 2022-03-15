@@ -11,10 +11,14 @@ Table of Contents
 -----------------
 
 .. toctree:: 
-   :maxdepth: 2
+   :maxdepth: 1
 
    control
-   advanced_topic
+   wiring
+   safety
+   zero
+   sdk
+   api
 
 Introduction
 ------------
@@ -30,10 +34,8 @@ This actuator was developped to:
    :width: 35%
    :align: center
 
-The Orbita actuator embeds an electronic board that controls the three motors via a PID controller and gives access to temperature and extra information through :ref:`RS485 communication <RS485>`. 
+The Orbita actuator embeds an electronic board that controls the three motors via a PID controller and gives access to temperature and extra information through RS485 communication. 
 
 It requires a 12V power supply.
 
-This documentation will guide you in :ref:`HowToControl` using our :ref:`PythonSDK`. This will allow you to simply start make Orbita move. :ref:`AdvancedTopics` will also be approached.
-
-For more information on the Orbita's design, you can check `this medium post <https://medium.com/pollen-robotics/orbita-is-turning-heads-literally-d10d378550e2>`_.
+This documentation will guide you in :ref:`HowToControl` using our :ref:`PythonSDK`. This will allow you to simply start make Orbita move. 

@@ -15,19 +15,28 @@ Or, you can download the SDK from the `GitHub repository <https://github.com/pol
 
 .. warning:: If cloning the source, make sure you are on the RS485 branch!
 
-SDK
----
+Getting started
+===============
 
-.. automodule:: orbita_sdk.orbita
-    :noindex:
+The SDK lets you control an Orbita 3 dof actuator in Python.
 
-The full API can be found in the :ref:`APIs` section below.
+It more details, with the SDK you can:
+
+- **enable/disable the torque** of all 3 motors
+- get Orbita's current position - you can either read the 3 **disks position** (in rads) or the plate **3D orientation** (as quaternion)
+- set a new target position - you can either use disk position (in rads) or 3D orientation of the plate (as quaternion)
+- get/set PID gains (same for all 3 motors)
+- get each motor temperature (in degree celsius)
+
+Communication with Orbita is rather fast (about ~1ms per command). So you can **control it at a few hundred Hz** (get its position and send a new target). Internal **PID controller runs at 1kHz**.
+
+.. warning:: Communication performance may vary a lot depending on your serial driver! In particular, if you are using Windows, make sure to decrease the driver latency to 1ms. On Linux/Mac OS default driver should work fine.
 
 
 Examples
 --------
 
-We provide ready to use examples as `Jupyter notebooks <https://jupyter.org>`_.
+The best way to get started in how to use the SDK is to dive in our simple demos. We provide ready to use examples as `Jupyter notebooks <https://jupyter.org>`_.
 
 Demo notebooks:
 
@@ -40,8 +49,15 @@ Benchmark and test:
 4. A `benchmark notebook <TODO>`_ will test the serial communication to make sure everything works fine on your computer.
 5. A `PID tuning example <TODO>`_ to tune PID gains. For instance, if working with additional charge at the end of the actuator.
 
-
 Finding your serial port
 ------------------------
 
-.. .. - nettoyer + lien vers notebook de benchmark com
+TODO
+
+APIs
+----
+
+The full API can be found in the :ref:`APIs` section below.
+
+
+

@@ -12,7 +12,7 @@ Communication with Orbita is rather fast (about ~1ms per command). So you can **
 
 .. warning:: Communication performance may vary a lot depending on your serial driver! In particular, if you are using Windows, make sure to decrease the driver latency to 1ms. On Linux/Mac OS default driver should work fine.
 
-Using the SDK is rather straightforward. You first need to instantiate an :class:`~orbita_sdk.OrbitaSDK`:
+Using the SDK is rather straightforward. You first need to instantiate an :class:`~orbita_sdk.OrbitaSDK`.
 
 First, import the module:
 

@@ -54,7 +54,7 @@ html_logo = '_static/logo_pollen_rectangle.png'
 html_title = "Orbita's docs"
 
 html_theme_options = {
-    'show_navbar_depth': 2,
+    'show_navbar_depth': 1,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
