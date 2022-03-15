@@ -368,8 +368,7 @@ void update_and_check_temperatures() {
       }
       status_led(1);
 
-      // Block forever, restart will be required
-      while (1) {}
+      return;
     }
   }
 
