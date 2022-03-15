@@ -37,6 +37,7 @@ The motors of Orbita should now be hard and controlled.
 
 """
 
+from collections.abc import Iterable
 from typing import Any, Tuple
 
 import numpy as np
@@ -145,7 +146,8 @@ class OrbitaSDK:
     def _get_register(self, reg: OrbitaRegister) -> Tuple[Any, Any, Any]:
         err, val = self._io.read(self._id, reg)
         self._check_error(err)
-        return tuple(val)
+    
+        return tuple(val) if isinstance(val, Iterable) else val
 
     def _set_register(self, reg: OrbitaRegister, val: Tuple[Any, Any, Any]):
         err = self._io.write(self._id, reg, val)
