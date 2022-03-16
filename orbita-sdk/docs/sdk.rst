@@ -1,7 +1,7 @@
 .. _PythonSDK:
 
-Python's SDK
-============
+Python SDK
+==========
 
 We assume here that you already start and connect Orbita to your PC.
 
@@ -40,14 +40,14 @@ The best way to get started in how to use the SDK is to dive in our simple demos
 
 Demo notebooks:
 
-1. A simple `Getting started notebook <TODO>`_ that will guide you in your first steps in controlling Orbita.
-2. An `Advanced demo notebook <TODO>`_ with more complex control trajectory.
-3. An `Interactive notebook <TODO>`_ that provides you with a widget to directly control Orbita's 3D orientation.
+1. A simple `Getting started notebook <notebooks/GettingStarted.ipynb>`_ that will guide you in your first steps in controlling Orbita.
+2. An `Advanced demo notebook <notebooks/AdvancedControlDemo.ipynb>`_ with more complex control trajectory.
+3. An `Interactive notebook <notebooks/InteractiveControl.ipynb>`_ that provides you with a widget to directly control Orbita's 3D orientation.
 
 Benchmark and test:
 
-4. A `benchmark notebook <TODO>`_ will test the serial communication to make sure everything works fine on your computer.
-5. A `PID tuning example <TODO>`_ to tune PID gains. For instance, if working with additional charge at the end of the actuator.
+4. A `benchmark notebook <notebooks/Benchmark.ipynb>`_ will test the serial communication to make sure everything works fine on your computer.
+5. A `PID tuning example <notebooks/PIDTuning.ipynb>`_ to tune PID gains. For instance, if working with additional charge at the end of the actuator.
 
 Finding your serial port
 ------------------------

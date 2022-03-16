@@ -18,6 +18,7 @@ Table of Contents
    safety
    zero
    sdk
+   notebooks
    api
 
 Introduction
