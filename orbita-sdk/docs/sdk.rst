@@ -52,7 +52,9 @@ Benchmark and test:
 Finding your serial port
 ------------------------
 
-TODO
+You can find may resources online to help you identify the name of the serial port you are looking for. This mainly depends on your operating system.
+
+For example, you can have a look at `this documentation <https://www.zaber.com/software/docs/motion-library/ascii/howtos/find_right_port/>`_.
 
 APIs
 ----
